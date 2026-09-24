@@ -1,0 +1,25 @@
+replicaCount: 1
+fullnameOverride: grafana
+
+image:
+  repository: grafana/grafana
+  tag: "12.2.0"
+
+service:
+  type: ClusterIP
+  port: 3000
+
+admin:
+  username: admin
+  password: admin
+
+anonymousViewer: false
+
+datasources:
+  prometheusUrl: http://prometheus:9090
+  jaegerUrl: http://jaeger:16686
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi

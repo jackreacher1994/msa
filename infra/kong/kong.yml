@@ -1,0 +1,70 @@
+# Kong declarative (DB-less) configuration.
+# API Gateway pattern: single entry point, routing, edge authentication, correlation id, rate limiting, tracing.
+_format_version: "3.0"
+
+services:
+  - name: customer-core-service
+    url: http://customer-core-service:8081
+    connect_timeout: 2000
+    read_timeout: 10000
+    routes:
+      - name: customers
+        paths: [/api/v1/customers]
+        strip_path: false
+  - name: reference-data-service
+    url: http://reference-data-service:8082
+    connect_timeout: 2000
+    read_timeout: 10000
+    routes:
+      - name: countries
+        paths: [/api/v1/countries]
+        strip_path: false
+
+plugins:
+  # Edge authentication: every route requires a valid Keycloak-issued JWT (RS256 signature + exp).
+  # Kong picks the consumer credential whose `key` equals the token's `iss` claim.
+  - name: jwt
+    config:
+      key_claim_name: iss
+      claims_to_verify: [exp]
+      header_names: [authorization]
+  - name: correlation-id
+    config:
+      header_name: X-Correlation-ID
+      generator: uuid
+      echo_downstream: true
+  - name: rate-limiting
+    config:
+      minute: 300
+      policy: local
+  # Gateway spans are exported to the OpenTelemetry Collector and the W3C traceparent is propagated
+  # to the services, so a single trace spans Kong -> customer-core -> reference-data.
+  - name: opentelemetry
+    config:
+      traces_endpoint: http://otel-collector:4318/v1/traces
+      resource_attributes:
+        service.name: kong
+      propagation:
+        default_format: w3c
+  - name: prometheus
+    config:
+      status_code_metrics: true
+      latency_metrics: true
+      per_consumer: false
+
+consumers:
+  # Represents the Keycloak "customer" realm as a token issuer.
+  - username: keycloak-customer-realm
+    jwt_secrets:
+      - key: http://localhost:8080/realms/customer
+        algorithm: RS256
+        rsa_public_key: |
+          -----BEGIN PUBLIC KEY-----
+          MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEApZBwbgFgn//f+CVCGPIE
+          TsksvwcE9+kkXsX4UDMS0cfxA+xDcoRlg5zQ6mg4JUCgFw1Ec2C5MJt2PBy+eZLU
+          0+xHtMPL1BtkrsAvbdB1pwKjYiiOCmqUb+cXeJ56pgOxm+Jc7Aw2G2O9QILYG7RI
+          kVn72daA0PO73g9df7c1Iu5kp83XSif+p8mK8ameTSkFtZmVjtZIJpjHPfgSSACH
+          Ol8V4l1LfxogPXjSP0Rh+Rf5OD1NJVqrjFs5LSvyjCp2ic5Cwh8fd8sl3KQ2pQW8
+          XrFRjeJSSyWjXoNCTD4lw5fgCFSFp4qN4241dts8kDY0LK3xNikCynWdyGhgM6lw
+          ZQIDAQAB
+          -----END PUBLIC KEY-----

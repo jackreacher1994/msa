@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "chart.fullname" . }}
+  labels:
+    {{- include "chart.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "chart.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "chart.selectorLabels" . | nindent 8 }}
+      annotations:
+        # Roll pods automatically when the configuration changes.
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+    spec:
+      containers:
+        - name: kong
+      image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+      env:
+        - {name: KONG_DATABASE, value: "off"}
+        - {name: KONG_DECLARATIVE_CONFIG, value: /kong/kong.yml}
+        - {name: KONG_PROXY_LISTEN, value: "0.0.0.0:8000"}
+        - {name: KONG_STATUS_LISTEN, value: "0.0.0.0:8100"}
+        - {name: KONG_ADMIN_LISTEN, value: "off"}
+        - {name: KONG_TRACING_INSTRUMENTATIONS, value: all}
+        - {name: KONG_TRACING_SAMPLING_RATE, value: {{ .Values.tracing.samplingRate | quote }}}
+        - {name: KONG_PROXY_ACCESS_LOG, value: /dev/stdout}
+        - {name: KONG_PROXY_ERROR_LOG, value: /dev/stderr}
+      ports:
+        - {name: proxy, containerPort: 8000}
+        - {name: status, containerPort: 8100}
+      readinessProbe:
+        httpGet: {path: /status/ready, port: status}
+      livenessProbe:
+        httpGet: {path: /status, port: status}
+      resources:
+        {{- toYaml .Values.resources | nindent 4 }}
+      volumeMounts:
+        - {name: declarative, mountPath: /kong}
+  volumes:
+    - name: declarative
+      configMap:
+        name: {{ include "chart.fullname" . }}-declarative

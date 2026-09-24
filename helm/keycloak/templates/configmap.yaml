@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "chart.fullname" . }}-realm
+  labels:
+    {{- include "chart.labels" . | nindent 4 }}
+data:
+  customer-realm.json: |
+    {{- .Files.Get "files/customer-realm.json" | nindent 4 }}

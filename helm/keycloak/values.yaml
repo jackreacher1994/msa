@@ -1,0 +1,32 @@
+replicaCount: 1
+fullnameOverride: keycloak
+
+image:
+  repository: quay.io/keycloak/keycloak
+  tag: "26.3"
+
+service:
+  type: ClusterIP
+  port: 8080
+
+# Public URL of Keycloak; it determines the `iss` claim that Kong trusts (keep in sync with kong.jwt.issuer).
+hostname: http://localhost:8080
+
+# `start-dev` uses an embedded H2 database. For production use `start` and configure `database` below.
+args: ["start-dev", "--import-realm"]
+
+admin:
+  username: admin
+  password: admin
+
+# Optional external database (only used with `start`).
+database:
+  vendor: ""
+  url: ""
+  username: ""
+  password: ""
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 768Mi

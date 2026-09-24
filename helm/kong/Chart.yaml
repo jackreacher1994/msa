@@ -1,0 +1,6 @@
+apiVersion: v2
+name: kong
+description: "Kong API Gateway (DB-less) with Keycloak JWT validation for the Customer MSA sample"
+type: application
+version: 0.1.0
+appVersion: "3.9"

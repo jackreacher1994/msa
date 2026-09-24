@@ -1,0 +1,45 @@
+# 12-factor config: every environment-specific value is overridable through environment variables.
+server:
+  port: ${SERVER_PORT:8081}
+  shutdown: graceful
+
+spring:
+  application:
+    name: customer-core-service
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/customer_core}
+    username: ${DB_USERNAME:customer_core}
+    password: ${DB_PASSWORD:customer_core}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          # Kong already validated the token; the service re-checks the signature against Keycloak's JWKS
+          # so it never trusts an unsigned/forged token that bypassed the gateway.
+          jwk-set-uri: ${JWT_JWK_SET_URI:http://localhost:8080/realms/customer/protocol/openid-connect/certs}
+
+reference-data:
+  base-url: ${REFERENCE_DATA_BASE_URL:http://localhost:8082}
+  connect-timeout: ${REFERENCE_DATA_CONNECT_TIMEOUT:2s}
+  read-timeout: ${REFERENCE_DATA_READ_TIMEOUT:3s}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+logging:
+  pattern:
+    # trace_id/span_id are injected into the MDC by the OpenTelemetry agent, correlating logs with traces.
+    level: "%5p [${spring.application.name},%X{trace_id:-},%X{span_id:-},%X{correlationId:-}]"

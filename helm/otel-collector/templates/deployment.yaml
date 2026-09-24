@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "chart.fullname" . }}
+  labels:
+    {{- include "chart.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "chart.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "chart.selectorLabels" . | nindent 8 }}
+      annotations:
+        # Roll pods automatically when the configuration changes.
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+    spec:
+      containers:
+        - name: otel-collector
+      image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+      args: ["--config=/etc/otelcol/config.yaml"]
+      env:
+        - {name: JAEGER_OTLP_ENDPOINT, value: {{ .Values.jaegerOtlpEndpoint | quote }}}
+        - {name: KONG_STATUS_ENDPOINT, value: {{ .Values.kongStatusEndpoint | quote }}}
+        - {name: DEPLOYMENT_ENVIRONMENT, value: {{ .Values.deploymentEnvironment | quote }}}
+      ports:
+        - {name: otlp-grpc, containerPort: 4317}
+        - {name: otlp-http, containerPort: 4318}
+        - {name: prometheus, containerPort: 8889}
+        - {name: health, containerPort: 13133}
+      readinessProbe:
+        httpGet: {path: /, port: health}
+      livenessProbe:
+        httpGet: {path: /, port: health}
+      resources:
+        {{- toYaml .Values.resources | nindent 4 }}
+      volumeMounts:
+        - {name: config, mountPath: /etc/otelcol}
+  volumes:
+    - name: config
+      configMap:
+        name: {{ include "chart.fullname" . }}

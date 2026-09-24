@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "chart.fullname" . }}
+  labels:
+    {{- include "chart.labels" . | nindent 4 }}
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: {{ .Values.scrapeInterval }}
+    scrape_configs:
+      - job_name: otel-collector
+        honor_labels: true
+        static_configs:
+          - targets: [{{ .Values.collectorTarget | quote }}]

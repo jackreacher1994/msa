@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Customer Core Service (DDD-based microservice archetype, Variant 1 of the skeleton).
+  Multi-module organization: domain / application / techframework.
+  Each DDD layer is its own Maven module, so the compiler (not just conventions) enforces the
+  dependency rule: techframework -> application -> domain. The domain has zero framework dependencies.
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.5.16</version>
+        <relativePath/>
+    </parent>
+
+    <groupId>com.msa.customer</groupId>
+    <artifactId>customer-core-service</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+    <packaging>pom</packaging>
+    <name>Customer Core Service</name>
+
+    <modules>
+        <module>domain</module>
+        <module>application</module>
+        <module>techframework</module>
+    </modules>
+
+    <properties>
+        <java.version>21</java.version>
+        <openapi-generator.version>7.25.0</openapi-generator.version>
+        <opentelemetry-javaagent.version>2.31.1</opentelemetry-javaagent.version>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>com.msa.customer</groupId>
+                <artifactId>customer-core-domain</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.msa.customer</groupId>
+                <artifactId>customer-core-application</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+</project>
