@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "chart.fullname" . }}
+  labels:
+    {{- include "chart.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "chart.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "chart.selectorLabels" . | nindent 8 }}
+      annotations:
+        # Roll pods automatically when the configuration changes.
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+    spec:
+      containers:
+        - name: grafana
+      image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+      env:
+        - name: GF_SECURITY_ADMIN_USER
+          valueFrom: {secretKeyRef: {name: {{ include "chart.fullname" . }}, key: admin-user}}
+        - name: GF_SECURITY_ADMIN_PASSWORD
+          valueFrom: {secretKeyRef: {name: {{ include "chart.fullname" . }}, key: admin-password}}
+        - {name: GF_AUTH_ANONYMOUS_ENABLED, value: {{ .Values.anonymousViewer | quote }}}
+        - {name: GF_AUTH_ANONYMOUS_ORG_ROLE, value: Viewer}
+      ports:
+        - {name: http, containerPort: 3000}
+      readinessProbe:
+        httpGet: {path: /api/health, port: http}
+      resources:
+        {{- toYaml .Values.resources | nindent 4 }}
+      volumeMounts:
+        - {name: config, mountPath: /etc/grafana/provisioning/datasources/datasources.yaml, subPath: datasources.yaml}
+        - {name: config, mountPath: /etc/grafana/provisioning/dashboards/dashboards.yaml, subPath: dashboards.yaml}
+        - {name: config, mountPath: /var/lib/grafana/dashboards/customer-msa-overview.json, subPath: customer-msa-overview.json}
+  volumes:
+    - name: config
+      configMap:
+        name: {{ include "chart.fullname" . }}

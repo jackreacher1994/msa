@@ -1,0 +1,47 @@
+replicaCount: 2
+fullnameOverride: customer-core-service
+
+image:
+  repository: customer-msa/customer-core-service
+  tag: local
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 8081
+
+# Plain (non-secret) 12-factor configuration passed as environment variables.
+env:
+  JWT_JWK_SET_URI: http://keycloak:8080/realms/customer/protocol/openid-connect/certs
+  REFERENCE_DATA_BASE_URL: http://reference-data-service:8082
+# OpenTelemetry Java agent settings (standard OTEL_* variables, vendor neutral).
+otel:
+  endpoint: http://otel-collector:4318
+  resourceAttributes: service.namespace=customer-msa,deployment.environment.name=production
+  metricExportInterval: "15000"
+
+# Database per service. Point `url` at a managed PostgreSQL, or enable the bundled single-node instance.
+database:
+  url: jdbc:postgresql://customer-core-service-db:5432/customer_core
+  name: customer_core
+  username: customer_core
+  password: customer_core
+  # Use an existing Secret with keys `username` and `password` instead of the values above.
+  existingSecret: ""
+
+postgresql:
+  enabled: true
+  image: postgres:17-alpine
+  storage: 1Gi
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 384Mi
+  limits:
+    memory: 768Mi
+
+podAnnotations: {}
+nodeSelector: {}
+tolerations: []
+affinity: {}

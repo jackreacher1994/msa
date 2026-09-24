@@ -1,0 +1,54 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "chart.fullname" . }}-declarative
+  labels:
+    {{- include "chart.labels" . | nindent 4 }}
+data:
+  kong.yml: |
+    _format_version: "3.0"
+    services:
+      - name: customer-core-service
+        url: {{ .Values.upstreams.customerCore }}
+        routes:
+          - name: customers
+            paths: [/api/v1/customers]
+            strip_path: false
+      - name: reference-data-service
+        url: {{ .Values.upstreams.referenceData }}
+        routes:
+          - name: countries
+            paths: [/api/v1/countries]
+            strip_path: false
+    plugins:
+      - name: jwt
+        config:
+          key_claim_name: iss
+          claims_to_verify: [exp]
+      - name: correlation-id
+        config:
+          header_name: X-Correlation-ID
+          generator: uuid
+          echo_downstream: true
+      - name: rate-limiting
+        config:
+          minute: {{ .Values.rateLimitPerMinute }}
+          policy: local
+      - name: opentelemetry
+        config:
+          traces_endpoint: {{ .Values.tracing.endpoint }}
+          resource_attributes:
+            service.name: kong
+          propagation:
+            default_format: w3c
+      - name: prometheus
+        config:
+          status_code_metrics: true
+          latency_metrics: true
+    consumers:
+      - username: keycloak-customer-realm
+        jwt_secrets:
+          - key: {{ .Values.jwt.issuer }}
+            algorithm: RS256
+            rsa_public_key: |
+              {{- .Values.jwt.rsaPublicKey | nindent 14 }}

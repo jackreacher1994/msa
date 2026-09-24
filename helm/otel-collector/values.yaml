@@ -1,0 +1,23 @@
+replicaCount: 1
+fullnameOverride: otel-collector
+
+image:
+  repository: otel/opentelemetry-collector-contrib
+  tag: "0.135.0"
+
+service:
+  type: ClusterIP
+  otlpGrpcPort: 4317
+  otlpHttpPort: 4318
+  prometheusPort: 8889
+
+deploymentEnvironment: production
+jaegerOtlpEndpoint: jaeger:4317
+kongStatusEndpoint: kong:8100
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    memory: 512Mi

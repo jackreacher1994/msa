@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "chart.fullname" . }}
+  labels:
+    {{- include "chart.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "chart.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "chart.selectorLabels" . | nindent 8 }}
+      annotations:
+        # Roll pods automatically when the configuration changes.
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+    spec:
+      containers:
+        - name: keycloak
+      image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+      args: {{ toJson .Values.args }}
+      env:
+        - name: KC_BOOTSTRAP_ADMIN_USERNAME
+          valueFrom: {secretKeyRef: {name: {{ include "chart.fullname" . }}, key: admin-username}}
+        - name: KC_BOOTSTRAP_ADMIN_PASSWORD
+          valueFrom: {secretKeyRef: {name: {{ include "chart.fullname" . }}, key: admin-password}}
+        - {name: KC_HOSTNAME, value: {{ .Values.hostname | quote }}}
+        - {name: KC_HOSTNAME_BACKCHANNEL_DYNAMIC, value: "true"}
+        - {name: KC_HTTP_ENABLED, value: "true"}
+        - {name: KC_HEALTH_ENABLED, value: "true"}
+        - {name: KC_PROXY_HEADERS, value: xforwarded}
+        {{- if .Values.database.vendor }}
+        - {name: KC_DB, value: {{ .Values.database.vendor | quote }}}
+        - {name: KC_DB_URL, value: {{ .Values.database.url | quote }}}
+        - {name: KC_DB_USERNAME, value: {{ .Values.database.username | quote }}}
+        - name: KC_DB_PASSWORD
+          valueFrom: {secretKeyRef: {name: {{ include "chart.fullname" . }}, key: db-password}}
+        {{- end }}
+      ports:
+        - {name: http, containerPort: 8080}
+        - {name: management, containerPort: 9000}
+      readinessProbe:
+        httpGet: {path: /health/ready, port: management}
+        periodSeconds: 10
+        failureThreshold: 30
+      resources:
+        {{- toYaml .Values.resources | nindent 4 }}
+      volumeMounts:
+        - {name: realm, mountPath: /opt/keycloak/data/import}
+  volumes:
+    - name: realm
+      configMap:
+        name: {{ include "chart.fullname" . }}-realm

@@ -1,0 +1,41 @@
+replicaCount: 2
+fullnameOverride: kong
+
+image:
+  repository: kong
+  tag: "3.9"
+
+service:
+  type: LoadBalancer
+  proxyPort: 80
+  statusPort: 8100
+
+# Upstream microservices (Kubernetes Service DNS names).
+upstreams:
+  customerCore: http://customer-core-service:8081
+  referenceData: http://reference-data-service:8082
+
+# Edge authentication: tokens whose `iss` equals `issuer` must be signed by `rsaPublicKey` (Keycloak realm key).
+jwt:
+  issuer: http://localhost:8080/realms/customer
+  rsaPublicKey: |
+    -----BEGIN PUBLIC KEY-----
+    MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEApZBwbgFgn//f+CVCGPIE
+    TsksvwcE9+kkXsX4UDMS0cfxA+xDcoRlg5zQ6mg4JUCgFw1Ec2C5MJt2PBy+eZLU
+    0+xHtMPL1BtkrsAvbdB1pwKjYiiOCmqUb+cXeJ56pgOxm+Jc7Aw2G2O9QILYG7RI
+    kVn72daA0PO73g9df7c1Iu5kp83XSif+p8mK8ameTSkFtZmVjtZIJpjHPfgSSACH
+    Ol8V4l1LfxogPXjSP0Rh+Rf5OD1NJVqrjFs5LSvyjCp2ic5Cwh8fd8sl3KQ2pQW8
+    XrFRjeJSSyWjXoNCTD4lw5fgCFSFp4qN4241dts8kDY0LK3xNikCynWdyGhgM6lw
+    ZQIDAQAB
+    -----END PUBLIC KEY-----
+
+rateLimitPerMinute: 300
+
+tracing:
+  endpoint: http://otel-collector:4318/v1/traces
+  samplingRate: "1.0"
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi

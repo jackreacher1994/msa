@@ -1,0 +1,66 @@
+{{- if .Values.postgresql.enabled }}
+{{- $secret := default (printf "%s-db" (include "chart.fullname" .)) .Values.database.existingSecret }}
+# Single-node PostgreSQL owned exclusively by this service (database-per-service). Use a managed DB in production.
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "chart.fullname" . }}-db
+  labels:
+    {{- include "chart.labels" . | nindent 4 }}
+spec:
+  serviceName: {{ include "chart.fullname" . }}-db
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "chart.fullname" . }}-db
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "chart.fullname" . }}-db
+    spec:
+      containers:
+        - name: postgres
+          image: {{ .Values.postgresql.image }}
+          ports:
+            - name: postgres
+              containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              value: {{ .Values.database.name | quote }}
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef: {name: {{ $secret }}, key: username}
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef: {name: {{ $secret }}, key: password}
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          readinessProbe:
+            exec:
+              command: ["sh", "-c", "pg_isready -U \"$POSTGRES_USER\" -d \"$POSTGRES_DB\""]
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: {{ .Values.postgresql.storage }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "chart.fullname" . }}-db
+  labels:
+    {{- include "chart.labels" . | nindent 4 }}
+spec:
+  selector:
+    app.kubernetes.io/name: {{ include "chart.fullname" . }}-db
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: postgres
+{{- end }}

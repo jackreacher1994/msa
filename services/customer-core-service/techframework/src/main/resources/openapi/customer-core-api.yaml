@@ -1,0 +1,184 @@
+openapi: 3.0.3
+info:
+  title: Customer Core API
+  description: API-first contract of the Customer Core bounded context. Server stubs are generated from this file.
+  version: 1.0.0
+servers:
+  - url: http://localhost:8000
+    description: Through the Kong API gateway
+tags:
+  - name: Customers
+paths:
+  /api/v1/customers:
+    get:
+      tags: [Customers]
+      operationId: getCustomers
+      summary: List customers
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: Customers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CustomerResponse'
+    post:
+      tags: [Customers]
+      operationId: registerCustomer
+      summary: Register a new customer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterCustomerRequest'
+      responses:
+        '201':
+          description: Customer registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerResponse'
+        '400':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+        '422':
+          $ref: '#/components/responses/Error'
+  /api/v1/customers/{customerId}:
+    get:
+      tags: [Customers]
+      operationId: getCustomerById
+      summary: Get a customer by id
+      parameters:
+        - $ref: '#/components/parameters/CustomerId'
+      responses:
+        '200':
+          description: Customer
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerResponse'
+        '404':
+          $ref: '#/components/responses/Error'
+  /api/v1/customers/{customerId}/profile:
+    put:
+      tags: [Customers]
+      operationId: updateCustomerProfile
+      summary: Update the profile of a customer
+      parameters:
+        - $ref: '#/components/parameters/CustomerId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCustomerProfileRequest'
+      responses:
+        '200':
+          description: Profile updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerResponse'
+        '400':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+        '422':
+          $ref: '#/components/responses/Error'
+components:
+  parameters:
+    CustomerId:
+      name: customerId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+  responses:
+    Error:
+      description: Error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorDescription'
+  schemas:
+    RegisterCustomerRequest:
+      type: object
+      required: [fullName, email, phoneNumber, countryCode]
+      properties:
+        fullName:
+          type: string
+          maxLength: 100
+          example: Alice Nguyen
+        email:
+          type: string
+          example: alice@example.com
+        phoneNumber:
+          type: string
+          description: E.164 format
+          example: '+84901234567'
+        countryCode:
+          type: string
+          description: ISO 3166-1 alpha-2, validated against the Reference Data service
+          example: VN
+    UpdateCustomerProfileRequest:
+      type: object
+      required: [fullName, phoneNumber, countryCode]
+      properties:
+        fullName:
+          type: string
+          maxLength: 100
+          example: Alice Tran
+        phoneNumber:
+          type: string
+          example: '+6591234567'
+        countryCode:
+          type: string
+          example: SG
+    CustomerResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        fullName:
+          type: string
+        email:
+          type: string
+        phoneNumber:
+          type: string
+        countryCode:
+          type: string
+        status:
+          type: string
+          enum: [ACTIVE, SUSPENDED]
+        registeredAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    ErrorDescription:
+      type: object
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        timestamp:
+          type: string
+          format: date-time

@@ -1,0 +1,84 @@
+{
+  "realm": "customer",
+  "enabled": true,
+  "sslRequired": "none",
+  "accessTokenLifespan": 900,
+  "roles": {
+    "realm": [
+      {
+        "name": "customer-admin",
+        "description": "Can manage customers and reference data"
+      }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "customer-app",
+      "name": "Customer MSA sample client",
+      "enabled": true,
+      "publicClient": true,
+      "protocol": "openid-connect",
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": true,
+      "redirectUris": [
+        "http://localhost:*"
+      ],
+      "webOrigins": [
+        "+"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256"
+      }
+    }
+  ],
+  "users": [
+    {
+      "username": "alice",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Alice",
+      "lastName": "Nguyen",
+      "email": "alice@example.com",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "alice123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "customer-admin",
+        "default-roles-customer"
+      ]
+    }
+  ],
+  "components": {
+    "org.keycloak.keys.KeyProvider": [
+      {
+        "name": "rsa-dev-fixed",
+        "providerId": "rsa",
+        "subComponents": {},
+        "config": {
+          "priority": [
+            "200"
+          ],
+          "enabled": [
+            "true"
+          ],
+          "active": [
+            "true"
+          ],
+          "algorithm": [
+            "RS256"
+          ],
+          "privateKey": [
+            "MIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQClkHBuAWCf/9/4JUIY8gROySy/BwT36SRexfhQMxLRx/ED7ENyhGWDnNDqaDglQKAXDURzYLkwm3Y8HL55ktTT7Ee0w8vUG2SuwC9t0HWnAqNiKI4KapRv5xd4nnqmA7Gb4lzsDDYbY71AgtgbtEiRWfvZ1oDQ87veD11/tzUi7mSnzddKJ/6nyYrxqZ5NKQW1mZWO1kgmmMc9+BJIAIc6XxXiXUt/GiA9eNI/RGH5F/k4PU0lWquMWzktK/KMKnaJzkLCHx93yyXcpDalBbxesVGN4lJLJaNeg0JMPiXDl+AIVIWnio3jbjV22zyQNjQsrfE2KQLKdZ3IaGAzqXBlAgMBAAECggEAE+rxv6YuRelePCfdUQtyjbjhh3S0eg+j9rvZ0OooCjFD0z096v23CbOYpY6WrJKe/87yjG/XL5wQSBCMMKuDq6AaC0rfz1thTC2mNw+US9yDI9itp96lD2ZNek8Ugbrhh9eeZq5cZwSjfKqRDZotfcEFzbHiyuB7mi4eiTIU9CfoxICrZj7zCgGCD4sBGtOkANDnZi879j6wM226kUJcz4ejSa6uwBJckj7Qtmut47VBlOixCFC57lRMPHhllDl7v+IZ6ft6Cy5Rei2SQS1V9hsxnzWvBSIhlp652FXSM+7+9AHgXnLxM8ec0O5Y6tuRgrAu90ZjH0RIlwKXBUoKWQKBgQDWPSrjexyFW8t8WS8ZywBsqtMiJvfMx6pjW97DdCwQgga1irwD05dtWoSzOGYHsPLoswXkvS4zaZS5C+wiI1qd4g1qltzf1/ADVBVF9ju0Cwl1SiKbaGf1t9wHHlHLjcY9ZCnWcIVM7CNjT0RWLyYpGmp7h3s6jae9ZoWBKuayaQKBgQDF1lUwvbgOygv32U9/mlUek1aLdoZcvHrdSLKU7AnXggh1NcHAf4CRPo34+xXl/rGA0/qzB8ltq69bBC0mhgQ2eykvQBE+HhphhE+1GcpcYHGapXTx+oMUUgjtAaEJlmsPDLmasQo/zEiu03qwRx6osAk8gR7QGSvyNwlWvPEWnQKBgBoYo1PIWEYKU3QXLPyYVLnn6QX89yxTmfa2ZyEp0oBERmrwtkxFBuoEH6vxD8SaEky0GeCuBqWuk7YitKXH5q7arUWxkMAXfp35LQoznzwkKAfIewSxKBCvT7byQ4ZnA6HQxKPhWutuzDS5oBpbbeuN0zCu5RzRyn/wsAx23FkZAoGAUi5uxQiKZNpZjmOfOoqJwWHDGbvqpKtG/pUsWeCTVgqWKNpj2esdJTivETZ8KkZaxgFIqwYZDo27Ejvx5YbWSStwOEiM4RjwLIIh+kD0ZttJVcxVgA9oVBCf1JRQqQLrBh1rHG9eqpHZv4Xp+UAR5FD8BT495oQOVVe3cWibXaECgYAz/wTKkya+bWYqgJ0KDR3pLwPKYImIppmdB1F1qWQJLgDcfSqteKnZ4aj18oyeH517OGapx0n1vhrEhxNzHm68DYDTOcR0I1359Tz/VbyCoB9L/YxpEunqWbhV80MdkHB2mRxXtIhMjZmLffIp4eoyvJvXrDqq5Bqjjd1D6xBRkQ=="
+          ],
+          "certificate": [
+            "MIIDBzCCAe+gAwIBAgIUch8ssCEMl+6cQ4j9cKJGjKJOxDUwDQYJKoZIhvcNAQELBQAwEzERMA8GA1UEAwwIY3VzdG9tZXIwHhcNMjYwOTI0MTQ0MjM0WhcNMzYwOTIxMTQ0MjM0WjATMREwDwYDVQQDDAhjdXN0b21lcjCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAKWQcG4BYJ//3/glQhjyBE7JLL8HBPfpJF7F+FAzEtHH8QPsQ3KEZYOc0OpoOCVAoBcNRHNguTCbdjwcvnmS1NPsR7TDy9QbZK7AL23QdacCo2IojgpqlG/nF3ieeqYDsZviXOwMNhtjvUCC2Bu0SJFZ+9nWgNDzu94PXX+3NSLuZKfN10on/qfJivGpnk0pBbWZlY7WSCaYxz34EkgAhzpfFeJdS38aID140j9EYfkX+Tg9TSVaq4xbOS0r8owqdonOQsIfH3fLJdykNqUFvF6xUY3iUkslo16DQkw+JcOX4AhUhaeKjeNuNXbbPJA2NCyt8TYpAsp1nchoYDOpcGUCAwEAAaNTMFEwHQYDVR0OBBYEFPg0XRckkSq4R0rqXye2CbYK2mCSMB8GA1UdIwQYMBaAFPg0XRckkSq4R0rqXye2CbYK2mCSMA8GA1UdEwEB/wQFMAMBAf8wDQYJKoZIhvcNAQELBQADggEBAIDprKS0mzT8qGozWKYwFOfoc/h6SIdU9bPaTCnCbqwOs/hq4jxZ+kZV9M5G+G2QL+/Uo+i8sSlwckB2ZhLlTnEkLFs4Kf6hrR5qoXCs33CMB+9yPjKCDiMQYYdn68LhlVbuOei4ctz/aWLmRMntoz5eu6g2dQF+7w4Eo1mbPvvu/32hMwpvQczvw8UnAVlg9oyKp+0cUNpvPGCHoVuBknf7rxniu2yjwn3uZ//yvyajTQ7jw6Jha02EoC/LTQbkXB2Z+vnh3FqXcan3FIsYuLJpc4v0q5dltxKWhKGDGSUfzr5gjXnzFWMLJDSy7nhvx22AMDG7gAN1KbrjYGmyyNE="
+          ]
+        }
+      }
+    ]
+  }
+}
