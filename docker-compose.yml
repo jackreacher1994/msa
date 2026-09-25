@@ -1,4 +1,4 @@
-# Local development stack: 2 microservices + Kong + Keycloak + OpenTelemetry Collector + Prometheus + Grafana + Jaeger.
+# Local development stack: 2 microservices + Kong + Keycloak + OpenTelemetry Collector + Grafana LGTM (Mimir/Tempo/Loki).
 # Only the edge (Kong), the IdP and the observability UIs are published to the host; services are reached via Kong.
 name: customer-msa
 
@@ -115,29 +115,37 @@ services:
     volumes: ["./infra/keycloak/customer-realm.json:/opt/keycloak/data/import/customer-realm.json:ro"]
     ports: ["8080:8080"]
 
-  # ---------- Observability (OpenTelemetry-first) ----------
+  # ---------- Observability (OpenTelemetry-first, Grafana LGTM) ----------
   otel-collector:
     image: otel/opentelemetry-collector-contrib:0.135.0
     command: ["--config=/etc/otelcol/config.yaml"]
     environment:
-      JAEGER_OTLP_ENDPOINT: jaeger:4317
+      MIMIR_OTLP_ENDPOINT: http://mimir:9009/otlp
+      TEMPO_OTLP_ENDPOINT: tempo:4317
+      LOKI_OTLP_ENDPOINT: http://loki:3100/otlp
       KONG_STATUS_ENDPOINT: kong:8100
       DEPLOYMENT_ENVIRONMENT: local
     volumes: ["./infra/otel-collector/otel-collector-config.yaml:/etc/otelcol/config.yaml:ro"]
     ports: ["4317:4317", "4318:4318"]
-    depends_on: [jaeger]
+    depends_on: [mimir, tempo, loki]
 
-  jaeger:
-    image: jaegertracing/jaeger:2.10.0
-    command: ["--config=/etc/jaeger/config.yaml"]
-    volumes: ["./infra/jaeger/jaeger-config.yaml:/etc/jaeger/config.yaml:ro"]
-    ports: ["16686:16686"]
+  mimir:
+    image: grafana/mimir:3.2.1
+    command: ["-config.file=/etc/mimir/mimir.yaml"]
+    volumes: ["./infra/mimir/mimir.yaml:/etc/mimir/mimir.yaml:ro", "mimir-data:/tmp/mimir"]
+    ports: ["9009:9009"]
 
-  prometheus:
-    image: prom/prometheus:v3.6.0
-    volumes: ["./infra/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro"]
-    ports: ["9090:9090"]
-    depends_on: [otel-collector]
+  tempo:
+    image: grafana/tempo:2.9.1
+    command: ["-config.file=/etc/tempo/tempo.yaml"]
+    volumes: ["./infra/tempo/tempo.yaml:/etc/tempo/tempo.yaml:ro", "tempo-data:/tmp/tempo"]
+    ports: ["3200:3200", "4317:4317", "4318:4318"]
+
+  loki:
+    image: grafana/loki:3.7.0
+    command: ["-config.file=/etc/loki/loki-config.yaml"]
+    volumes: ["./infra/loki/loki-config.yaml:/etc/loki/loki-config.yaml:ro", "loki-data:/tmp/loki"]
+    ports: ["3100:3100"]
 
   grafana:
     image: grafana/grafana:12.2.0
@@ -150,8 +158,11 @@ services:
       - ./infra/grafana/provisioning:/etc/grafana/provisioning:ro
       - ./infra/grafana/dashboards:/var/lib/grafana/dashboards:ro
     ports: ["3000:3000"]
-    depends_on: [prometheus, jaeger]
+    depends_on: [mimir, tempo, loki]
 
 volumes:
   customer-core-db:
   reference-data-db:
+  mimir-data:
+  tempo-data:
+  loki-data:

@@ -1,0 +1,19 @@
+replicaCount: 1
+fullnameOverride: tempo
+
+image:
+  repository: grafana/tempo
+  tag: "2.9.1"
+
+service:
+  type: ClusterIP
+  port: 3200
+  otlpGrpcPort: 4317
+  otlpHttpPort: 4318
+
+retention: 168h
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 512Mi

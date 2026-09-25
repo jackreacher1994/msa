@@ -1,0 +1,46 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "chart.fullname" . }}
+  labels:
+    {{- include "chart.labels" . | nindent 4 }}
+data:
+  mimir.yaml: |
+    # Grafana Mimir in monolithic mode with local filesystem storage (demo only, not for production).
+    # Receives metrics from the OpenTelemetry Collector over native OTLP HTTP at :9009/otlp,
+    # serves the Prometheus API to Grafana at :9009/prometheus.
+    multitenancy_enabled: false
+    server:
+      http_listen_port: 9009
+      log_level: error
+    distributor:
+      ring:
+        instance_addr: 127.0.0.1
+        kvstore:
+          store: memberlist
+    ingester:
+      ring:
+        instance_addr: 127.0.0.1
+        kvstore:
+          store: memberlist
+        replication_factor: 1
+    blocks_storage:
+      backend: filesystem
+      bucket_store:
+        sync_dir: /tmp/mimir/tsdb-sync
+      filesystem:
+        dir: /tmp/mimir/data/tsdb
+      tsdb:
+        dir: /tmp/mimir/tsdb
+    compactor:
+      data_dir: /tmp/mimir/compactor
+      sharding_ring:
+        kvstore:
+          store: memberlist
+    ruler_storage:
+      backend: filesystem
+      filesystem:
+        dir: /tmp/mimir/rules
+    store_gateway:
+      sharding_ring:
+        replication_factor: 1

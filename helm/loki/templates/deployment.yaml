@@ -18,21 +18,22 @@ spec:
         checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
     spec:
       containers:
-        - name: jaeger
+        - name: loki
       image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
-      args: ["--config=/etc/jaeger/config.yaml"]
+      args: ["-config.file=/etc/loki/loki-config.yaml"]
       ports:
-        - {name: ui, containerPort: 16686}
-        - {name: otlp-grpc, containerPort: 4317}
-        - {name: otlp-http, containerPort: 4318}
-        - {name: health, containerPort: 13133}
+        - {name: http, containerPort: 3100}
+        - {name: grpc, containerPort: 9096}
       readinessProbe:
-        httpGet: {path: /status, port: health}
+        httpGet: {path: /ready, port: http}
       resources:
         {{- toYaml .Values.resources | nindent 4 }}
       volumeMounts:
-        - {name: config, mountPath: /etc/jaeger}
+        - {name: config, mountPath: /etc/loki}
+        - {name: data, mountPath: /tmp/loki}
   volumes:
     - name: config
       configMap:
         name: {{ include "chart.fullname" . }}
+    - name: data
+      emptyDir: {}

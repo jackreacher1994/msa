@@ -18,21 +18,18 @@ spec:
         checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
     spec:
       containers:
-        - name: prometheus
+        - name: mimir
       image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
-      args:
-        - --config.file=/etc/prometheus/prometheus.yml
-        - --storage.tsdb.path=/prometheus
-        - --storage.tsdb.retention.time={{ .Values.retention }}
+      args: ["-config.file=/etc/mimir/mimir.yaml"]
       ports:
-        - {name: http, containerPort: 9090}
+        - {name: http, containerPort: 9009}
       readinessProbe:
-        httpGet: {path: /-/ready, port: http}
+        httpGet: {path: /ready, port: http}
       resources:
         {{- toYaml .Values.resources | nindent 4 }}
       volumeMounts:
-        - {name: config, mountPath: /etc/prometheus}
-        - {name: data, mountPath: /prometheus}
+        - {name: config, mountPath: /etc/mimir}
+        - {name: data, mountPath: /tmp/mimir}
   volumes:
     - name: config
       configMap:

@@ -8,8 +8,17 @@ data:
   datasources.yaml: |
     apiVersion: 1
     datasources:
-      - {name: Prometheus, uid: prometheus, type: prometheus, access: proxy, url: {{ .Values.datasources.prometheusUrl }}, isDefault: true}
-      - {name: Jaeger, uid: jaeger, type: jaeger, access: proxy, url: {{ .Values.datasources.jaegerUrl }}}
+      - {name: Mimir, uid: mimir, type: prometheus, access: proxy, url: {{ .Values.datasources.mimirUrl }}, isDefault: true}
+      - name: Tempo
+        uid: tempo
+        type: tempo
+        access: proxy
+        url: {{ .Values.datasources.tempoUrl }}
+        jsonData:
+          tracesToLogs: {datasourceUid: loki}
+          tracesToMetrics: {datasourceUid: mimir}
+          serviceMap: {datasourceUid: mimir}
+      - {name: Loki, uid: loki, type: loki, access: proxy, url: {{ .Values.datasources.lokiUrl }}}
   dashboards.yaml: |
     apiVersion: 1
     providers:

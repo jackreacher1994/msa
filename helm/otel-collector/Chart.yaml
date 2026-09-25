@@ -1,6 +1,6 @@
 apiVersion: v2
 name: otel-collector
-description: "OpenTelemetry Collector: single telemetry hub (metrics -> Prometheus, traces -> Jaeger)"
+description: "OpenTelemetry Collector: single telemetry hub (metrics -> Mimir, traces -> Tempo, logs -> Loki)"
 type: application
 version: 0.1.0
 appVersion: "0.135.0"

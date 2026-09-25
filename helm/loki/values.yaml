@@ -1,0 +1,15 @@
+replicaCount: 1
+fullnameOverride: loki
+
+image:
+  repository: grafana/loki
+  tag: "3.7.0"
+
+service:
+  type: ClusterIP
+  port: 3100
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 512Mi

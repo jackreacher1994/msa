@@ -1,0 +1,41 @@
+# Grafana Tempo in monolithic (single-binary) mode with local filesystem storage (demo only).
+# Receives traces from the OpenTelemetry Collector over OTLP gRPC :4317 / HTTP :4318,
+# serves the query API to Grafana at :3200.
+multitenancy_enabled: false
+
+stream_over_http_enabled: true
+
+server:
+  http_listen_port: 3200
+  log_level: error
+
+distributor:
+  receivers:
+    otlp:
+      protocols:
+        grpc:
+          endpoint: "0.0.0.0:4317"
+        http:
+          endpoint: "0.0.0.0:4318"
+
+storage:
+  trace:
+    backend: local
+    wal:
+      path: /tmp/tempo/wal
+    local:
+      path: /tmp/tempo/blocks
+    block:
+      bloom_filter_false_positive: 0.05
+      index_downsample_bytes: 1000
+      encoding: zstd
+    search:
+      encoding: snappy
+    block_retention: 168h
+
+compactor:
+  compaction:
+    block_retention: 168h
+
+usage_report:
+  reporting_enabled: false

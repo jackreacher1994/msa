@@ -20,7 +20,7 @@
       "title": "HTTP request rate by service/route",
       "datasource": {
         "type": "prometheus",
-        "uid": "prometheus"
+        "uid": "mimir"
       },
       "gridPos": {
         "h": 8,
@@ -41,7 +41,7 @@
           "legendFormat": "{{job}} {{http_route}} {{http_response_status_code}}",
           "datasource": {
             "type": "prometheus",
-            "uid": "prometheus"
+            "uid": "mimir"
           }
         }
       ]
@@ -52,7 +52,7 @@
       "title": "HTTP p95 latency by service",
       "datasource": {
         "type": "prometheus",
-        "uid": "prometheus"
+        "uid": "mimir"
       },
       "gridPos": {
         "h": 8,
@@ -73,7 +73,7 @@
           "legendFormat": "{{job}}",
           "datasource": {
             "type": "prometheus",
-            "uid": "prometheus"
+            "uid": "mimir"
           }
         }
       ]
@@ -84,7 +84,7 @@
       "title": "Customer use cases (business metric)",
       "datasource": {
         "type": "prometheus",
-        "uid": "prometheus"
+        "uid": "mimir"
       },
       "gridPos": {
         "h": 8,
@@ -105,7 +105,7 @@
           "legendFormat": "{{use_case}} {{outcome}}",
           "datasource": {
             "type": "prometheus",
-            "uid": "prometheus"
+            "uid": "mimir"
           }
         }
       ]
@@ -116,7 +116,7 @@
       "title": "Outbound HTTP (customer-core -> reference-data)",
       "datasource": {
         "type": "prometheus",
-        "uid": "prometheus"
+        "uid": "mimir"
       },
       "gridPos": {
         "h": 8,
@@ -137,7 +137,7 @@
           "legendFormat": "{{job}} {{http_response_status_code}}",
           "datasource": {
             "type": "prometheus",
-            "uid": "prometheus"
+            "uid": "mimir"
           }
         }
       ]
@@ -148,7 +148,7 @@
       "title": "JVM heap used",
       "datasource": {
         "type": "prometheus",
-        "uid": "prometheus"
+        "uid": "mimir"
       },
       "gridPos": {
         "h": 8,
@@ -169,7 +169,7 @@
           "legendFormat": "{{job}}",
           "datasource": {
             "type": "prometheus",
-            "uid": "prometheus"
+            "uid": "mimir"
           }
         }
       ]
@@ -180,7 +180,7 @@
       "title": "Kong requests by service/status",
       "datasource": {
         "type": "prometheus",
-        "uid": "prometheus"
+        "uid": "mimir"
       },
       "gridPos": {
         "h": 8,
@@ -201,7 +201,32 @@
           "legendFormat": "{{service}} {{code}}",
           "datasource": {
             "type": "prometheus",
-            "uid": "prometheus"
+            "uid": "mimir"
+          }
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "type": "logs",
+      "title": "Service logs (Loki, OTLP)",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 24
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "{service_name=~\"customer-core-service|reference-data-service|kong\"}",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
           }
         }
       ]

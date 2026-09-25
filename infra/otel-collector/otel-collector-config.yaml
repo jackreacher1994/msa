@@ -1,5 +1,5 @@
 # OpenTelemetry Collector: the single hub for all telemetry (vendor-neutral pipeline).
-# services (OTLP) --> Collector --> Prometheus (metrics, pull) / Jaeger (traces, OTLP) / debug (logs)
+# services (OTLP) --> Collector --> Mimir (metrics, OTLP) / Tempo (traces, OTLP) / Loki (logs, OTLP)
 receivers:
   otlp:
     protocols:
@@ -7,7 +7,7 @@ receivers:
         endpoint: 0.0.0.0:4317
       http:
         endpoint: 0.0.0.0:4318
-  # Kong exposes Prometheus metrics; the Collector scrapes them so Prometheus only needs one target.
+  # Kong exposes Prometheus metrics; the Collector scrapes them so Mimir only needs the Collector.
   prometheus/kong:
     config:
       scrape_configs:
@@ -29,18 +29,21 @@ processors:
         action: upsert
 
 exporters:
-  otlp/jaeger:
-    endpoint: ${env:JAEGER_OTLP_ENDPOINT}
+  # Grafana Mimir accepts native OTLP over HTTP at <mimir-host>/otlp.
+  otlphttp/mimir:
+    endpoint: ${env:MIMIR_OTLP_ENDPOINT}
     tls:
       insecure: true
-  prometheus:
-    endpoint: 0.0.0.0:8889
-    resource_to_telemetry_conversion:
-      enabled: true
-  # No log backend is part of this sample; logs are printed by the Collector.
-  # Add e.g. a Loki/OpenSearch exporter here without touching the services.
-  debug:
-    verbosity: basic
+  # Grafana Tempo accepts OTLP over gRPC (default :4317).
+  otlp/tempo:
+    endpoint: ${env:TEMPO_OTLP_ENDPOINT}
+    tls:
+      insecure: true
+  # Grafana Loki accepts native OTLP over HTTP at <loki-host>/otlp.
+  otlphttp/loki:
+    endpoint: ${env:LOKI_OTLP_ENDPOINT}
+    tls:
+      insecure: true
 
 extensions:
   health_check:
@@ -52,12 +55,12 @@ service:
     traces:
       receivers: [otlp]
       processors: [memory_limiter, resource, batch]
-      exporters: [otlp/jaeger]
+      exporters: [otlp/tempo]
     metrics:
       receivers: [otlp, prometheus/kong]
       processors: [memory_limiter, resource, batch]
-      exporters: [prometheus]
+      exporters: [otlphttp/mimir]
     logs:
       receivers: [otlp]
       processors: [memory_limiter, resource, batch]
-      exporters: [debug]
+      exporters: [otlphttp/loki]

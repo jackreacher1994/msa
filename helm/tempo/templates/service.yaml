@@ -9,9 +9,9 @@ spec:
   selector:
     {{- include "chart.selectorLabels" . | nindent 4 }}
   ports:
-    - name: ui
-      port: {{ .Values.service.uiPort }}
-      targetPort: ui
+    - name: http
+      port: {{ .Values.service.port }}
+      targetPort: http
     - name: otlp-grpc
       port: {{ .Values.service.otlpGrpcPort }}
       targetPort: otlp-grpc

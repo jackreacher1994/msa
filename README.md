@@ -24,14 +24,16 @@ Clarity is favoured over completeness.
  +---------+  /api/v1/countries   v         +--------------------+
       |---------------------> reference-data-service ---->| reference-data-db  |
       |                       (CRUD / MVC, supporting)    +--------------------+
-      |
-      |  OTLP (traces, metrics, logs) from Kong + both services
-      v
- +----------------+  traces (OTLP)  +--------+
- | OTel Collector |---------------->| Jaeger |
- |                |  metrics :8889  +--------+       +---------+
- |                |<----------------- Prometheus --->| Grafana |
- +----------------+  logs -> debug exporter          +---------+
+       |
+       |  OTLP (traces, metrics, logs) from Kong + both services
+       v
+  +----------------+  metrics (OTLP)   +-------+
+  | OTel Collector |------------------>| Mimir |---+
+  |                |  traces (OTLP)    +-------+   |   +---------+
+  |                |------------------>| Tempo |---+-->| Grafana |
+  |                |  logs (OTLP)      +-------+   |   +---------+
+  |                |------------------>| Loki  |---+
+  +----------------+                   +-------+
 ```
 
 | Bounded context | Service | Subdomain | Style |
@@ -52,7 +54,7 @@ services/
     application/                Maven module: inbound/outbound ports + use cases (depends on domain only)
     techframework/              Maven module: Spring Boot app, adapters, config (depends on application)
   reference-data-service/       CRUD archetype (skeleton "Variant 2")
-infra/                          Docker Compose configs: kong, keycloak, otel-collector, prometheus, grafana, jaeger
+infra/                          Docker Compose configs: kong, keycloak, otel-collector, mimir, tempo, loki, grafana
 helm/                           One Helm chart per component/service
 scripts/smoke-test.sh           End-to-end test through Kong
 docker-compose.yml
@@ -151,11 +153,13 @@ Seeded with VN, SG, JP, US, DE (active) and AQ (inactive).
 * Application code uses only the vendor-neutral **OpenTelemetry API** (`UseCaseObservabilityAspect`): a span per
   use case and the business counter `customer.use_case.invocations{use_case,outcome}`.
 * Everything is sent via **OTLP to the OpenTelemetry Collector** (`infra/otel-collector/otel-collector-config.yaml`),
-  which also scrapes Kong's Prometheus endpoint and then exports:
-  * **metrics -> Prometheus exporter (:8889)**, scraped by Prometheus, shown in Grafana
-    (datasources + "Customer MSA - Overview" dashboard are provisioned);
-  * **traces -> Jaeger** over OTLP (Kong -> customer-core -> reference-data in one trace);
-  * **logs -> `debug` exporter** (Collector stdout). Add a log backend exporter here without changing services.
+  which also scrapes Kong's Prometheus endpoint and then exports over OTLP (no Prometheus or Jaeger involved):
+  * **metrics -> Mimir** via `otlphttp` (`http://mimir:9009/otlp`), queried from Grafana via the Prometheus API
+    (`http://mimir:9009/prometheus`; datasources + "Customer MSA - Overview" dashboard are provisioned);
+  * **traces -> Tempo** over OTLP gRPC (`tempo:4317`), queried from Grafana (`http://tempo:3200`);
+  * **logs -> Loki** via `otlphttp` (`http://loki:3100/otlp`), queried from Grafana (`http://loki:3100`).
+  This is the Grafana Labs "LGTM + OpenTelemetry" architecture: Grafana connects to Mimir for metrics,
+  Tempo for traces and Loki for logs (with traces-to-logs/metrics correlation configured).
 
 ## Run locally with Docker Compose
 
@@ -173,9 +177,10 @@ docker compose ps          # wait until the services are healthy (~1 min)
 |---|---|
 | http://localhost:8000 | Kong proxy (the only entry point to the services) |
 | http://localhost:8080 | Keycloak (admin console: `admin` / `admin`) |
-| http://localhost:16686 | Jaeger UI (traces) |
-| http://localhost:9090 | Prometheus |
-| http://localhost:3000 | Grafana (`admin` / `admin`; anonymous view enabled) -> dashboard "Customer MSA - Overview" |
+| http://localhost:3000 | Grafana (`admin` / `admin`; anonymous view enabled) -> dashboard "Customer MSA - Overview" (Mimir/Tempo/Loki) |
+| http://localhost:9009 | Mimir (metrics; Prometheus API at `/prometheus`, OTLP ingest at `/otlp`) |
+| http://localhost:3200 | Tempo (traces) |
+| http://localhost:3100 | Loki (logs) |
 
 ### Authenticate through Keycloak
 
@@ -208,13 +213,14 @@ curl -i http://localhost:8000/api/v1/customers
 
 ### Where to look
 
-* **Traces**: Jaeger -> service `kong` or `customer-core-service` -> a `PUT /api/v1/customers/{customerId}/profile`
+* **Traces**: Grafana -> Explore -> Tempo datasource -> service `kong` or `customer-core-service` -> a `PUT /api/v1/customers/{customerId}/profile`
   trace shows Kong plugins, the `UseCase updateCustomerProfile` span, JDBC calls and the downstream call to
   `reference-data-service`.
-* **Metrics** (Prometheus / Grafana): `http_server_request_duration_seconds_*`, `http_client_request_duration_seconds_*`,
+* **Metrics** (Mimir / Grafana): `http_server_request_duration_seconds_*`, `http_client_request_duration_seconds_*`,
   `jvm_memory_used_bytes`, `customer_use_case_invocations_total`, `kong_http_requests_total`.
 * **Logs**: `docker compose logs customer-core-service` (log lines carry `trace_id`, `span_id` and correlation id);
-  `docker compose logs otel-collector` shows the OTLP log records.
+  Grafana -> Explore -> Loki datasource (`{service_name="customer-core-service"}`) or the "Service logs" dashboard panel;
+  jump from a Tempo trace to its logs (and vice versa) via the configured correlation.
 
 ## Build and test without Docker
 
@@ -225,13 +231,13 @@ mvn -B verify   # Java 21 + Maven 3.9; builds both services and runs unit/web-sl
 ## Kubernetes (Helm)
 
 One chart per component in `helm/`: `customer-core-service`, `reference-data-service`, `kong`, `keycloak`,
-`otel-collector`, `prometheus`, `grafana`, `jaeger`. Service names are fixed (`fullnameOverride`) so charts find each
+`otel-collector`, `mimir`, `tempo`, `loki`, `grafana`. Service names are fixed (`fullnameOverride`) so charts find each
 other by DNS; everything is configurable in each chart's `values.yaml` (images, replicas, resources, URLs,
 credentials, rate limit, JWT issuer/key, database, etc.).
 
 ```bash
 kubectl create namespace customer-msa
-for c in otel-collector jaeger prometheus grafana keycloak reference-data-service customer-core-service kong; do
+for c in otel-collector mimir tempo loki grafana keycloak reference-data-service customer-core-service kong; do
   helm upgrade --install $c ./helm/$c -n customer-msa
 done
 kubectl -n customer-msa port-forward svc/keycloak 8080:8080 &
@@ -247,5 +253,5 @@ Notes:
 
 ## Educational simplifications
 
-Password grant for demos, in-memory Jaeger storage, logging event publisher instead of a broker/outbox, no
+Password grant for demos, single-binary Mimir/Tempo/Loki with local filesystem storage, logging event publisher instead of a broker/outbox, no
 retries/circuit breaker beyond timeouts, dev-only Keycloak key, and default credentials everywhere.
