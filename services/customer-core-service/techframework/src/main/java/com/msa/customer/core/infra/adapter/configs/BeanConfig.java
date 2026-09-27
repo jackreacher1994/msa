@@ -1,9 +1,9 @@
 package com.msa.customer.core.infra.adapter.configs;
 
 import com.msa.customer.core.application.ports.inbound.commandservices.CustomerCommandInboundPort;
-import com.msa.customer.core.application.ports.inbound.commandservices.CustomerCommandInboundPortImpl;
+import com.msa.customer.core.application.ports.inbound.commandservices.impl.CustomerCommandInboundPortImpl;
 import com.msa.customer.core.application.ports.inbound.queryservices.CustomerQueryInboundPort;
-import com.msa.customer.core.application.ports.inbound.queryservices.CustomerQueryInboundPortImpl;
+import com.msa.customer.core.application.ports.inbound.queryservices.impl.CustomerQueryInboundPortImpl;
 import com.msa.customer.core.application.ports.outbound.repositories.eventpublisher.CustomerEventPublisherOutboundPort;
 import com.msa.customer.core.application.ports.outbound.repositories.persistence.CustomerRepositoryOutboundPort;
 import com.msa.customer.core.application.ports.outbound.repositories.referencedata.ReferenceDataOutboundPort;

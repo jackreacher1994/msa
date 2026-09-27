@@ -1,5 +1,6 @@
-package com.msa.customer.core.application.ports.inbound.queryservices;
+package com.msa.customer.core.application.ports.inbound.queryservices.impl;
 
+import com.msa.customer.core.application.ports.inbound.queryservices.CustomerQueryInboundPort;
 import com.msa.customer.core.application.ports.outbound.repositories.persistence.CustomerRepositoryOutboundPort;
 import com.msa.customer.core.domain.aggregateroots.CustomerDomainEntity;
 import com.msa.customer.core.domain.exceptions.business.CustomerNotFoundException;

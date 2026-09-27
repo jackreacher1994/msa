@@ -1,5 +1,6 @@
-package com.msa.customer.core.application.ports.inbound.commandservices;
+package com.msa.customer.core.application.ports.inbound.commandservices.impl;
 
+import com.msa.customer.core.application.ports.inbound.commandservices.CustomerCommandInboundPort;
 import com.msa.customer.core.application.ports.outbound.dtos.CountryDTO;
 import com.msa.customer.core.application.ports.outbound.repositories.eventpublisher.CustomerEventPublisherOutboundPort;
 import com.msa.customer.core.application.ports.outbound.repositories.persistence.CustomerRepositoryOutboundPort;

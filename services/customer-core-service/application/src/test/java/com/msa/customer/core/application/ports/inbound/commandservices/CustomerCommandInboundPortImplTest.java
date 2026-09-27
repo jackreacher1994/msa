@@ -1,5 +1,6 @@
 package com.msa.customer.core.application.ports.inbound.commandservices;
 
+import com.msa.customer.core.application.ports.inbound.commandservices.impl.CustomerCommandInboundPortImpl;
 import com.msa.customer.core.application.ports.outbound.dtos.CountryDTO;
 import com.msa.customer.core.application.ports.outbound.repositories.persistence.CustomerRepositoryOutboundPort;
 import com.msa.customer.core.domain.aggregateroots.CustomerDomainEntity;
