@@ -19,27 +19,31 @@ spec:
     spec:
       containers:
         - name: otel-collector
-      image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
-      args: ["--config=/etc/otelcol/config.yaml"]
-      env:
-        - {name: MIMIR_OTLP_ENDPOINT, value: {{ .Values.mimirOtlpEndpoint | quote }}}
-        - {name: TEMPO_OTLP_ENDPOINT, value: {{ .Values.tempoOtlpEndpoint | quote }}}
-        - {name: LOKI_OTLP_ENDPOINT, value: {{ .Values.lokiOtlpEndpoint | quote }}}
-        - {name: KONG_STATUS_ENDPOINT, value: {{ .Values.kongStatusEndpoint | quote }}}
-        - {name: DEPLOYMENT_ENVIRONMENT, value: {{ .Values.deploymentEnvironment | quote }}}
-      ports:
-        - {name: otlp-grpc, containerPort: 4317}
-        - {name: otlp-http, containerPort: 4318}
-        - {name: health, containerPort: 13133}
-      readinessProbe:
-        httpGet: {path: /, port: health}
-      livenessProbe:
-        httpGet: {path: /, port: health}
-      resources:
-        {{- toYaml .Values.resources | nindent 4 }}
-      volumeMounts:
-        - {name: config, mountPath: /etc/otelcol}
-  volumes:
-    - name: config
-      configMap:
-        name: {{ include "chart.fullname" . }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          args: ["--config=/etc/otelcol/config.yaml"]
+          env:
+            - {name: MIMIR_OTLP_ENDPOINT, value: {{ .Values.mimirOtlpEndpoint | quote }}}
+            - {name: TEMPO_OTLP_ENDPOINT, value: {{ .Values.tempoOtlpEndpoint | quote }}}
+            - {name: LOKI_OTLP_ENDPOINT, value: {{ .Values.lokiOtlpEndpoint | quote }}}
+            - {name: KONG_STATUS_ENDPOINT, value: {{ .Values.kongStatusEndpoint | quote }}}
+            - {name: KEYCLOAK_METRICS_ENDPOINT, value: {{ .Values.keycloakMetricsEndpoint | quote }}}
+            - {name: KAFKA_EXPORTER_ENDPOINT, value: {{ .Values.kafkaExporterEndpoint | quote }}}
+            - {name: POSTGRES_CORE_EXPORTER_ENDPOINT, value: {{ .Values.postgresCoreExporterEndpoint | quote }}}
+            - {name: POSTGRES_REF_EXPORTER_ENDPOINT, value: {{ .Values.postgresRefExporterEndpoint | quote }}}
+            - {name: DEPLOYMENT_ENVIRONMENT, value: {{ .Values.deploymentEnvironment | quote }}}
+          ports:
+            - {name: otlp-grpc, containerPort: 4317}
+            - {name: otlp-http, containerPort: 4318}
+            - {name: health, containerPort: 13133}
+          readinessProbe:
+            httpGet: {path: /, port: health}
+          livenessProbe:
+            httpGet: {path: /, port: health}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - {name: config, mountPath: /etc/otelcol}
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "chart.fullname" . }}

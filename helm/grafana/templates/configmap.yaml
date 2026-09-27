@@ -29,3 +29,9 @@ data:
           path: /var/lib/grafana/dashboards
   customer-msa-overview.json: |
     {{- .Files.Get "files/customer-msa-overview.json" | nindent 4 }}
+  postgresql.json: |
+    {{- .Files.Get "files/postgresql.json" | nindent 4 }}
+  kafka.json: |
+    {{- .Files.Get "files/kafka.json" | nindent 4 }}
+  keycloak.json: |
+    {{- .Files.Get "files/keycloak.json" | nindent 4 }}

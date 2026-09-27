@@ -1,5 +1,5 @@
 # OpenTelemetry Collector: the single hub for all telemetry (vendor-neutral pipeline).
-# services (OTLP) --> Collector --> Mimir (metrics, OTLP) / Tempo (traces, OTLP) / Loki (logs, OTLP)
+# services (OTLP) + infra scrapes (Kong/Keycloak/Kafka/Postgres exporters) --> Collector --> Mimir (metrics, OTLP) / Tempo (traces, OTLP) / Loki (logs, OTLP)
 receivers:
   otlp:
     protocols:
@@ -15,6 +15,39 @@ receivers:
           scrape_interval: 15s
           static_configs:
             - targets: ["${env:KONG_STATUS_ENDPOINT}"]
+  # Keycloak (Quarkus Micrometer) exposes OpenMetrics at :9000/metrics when --metrics-enabled=true.
+  prometheus/keycloak:
+    config:
+      scrape_configs:
+        - job_name: keycloak
+          scrape_interval: 15s
+          metrics_path: /metrics
+          static_configs:
+            - targets: ["${env:KEYCLOAK_METRICS_ENDPOINT}"]
+  # Kafka broker/topic/consumer-group metrics via kafka-exporter.
+  prometheus/kafka:
+    config:
+      scrape_configs:
+        - job_name: kafka
+          scrape_interval: 15s
+          static_configs:
+            - targets: ["${env:KAFKA_EXPORTER_ENDPOINT}"]
+  # One postgres-exporter per database-per-service store.
+  prometheus/postgres:
+    config:
+      scrape_configs:
+        - job_name: postgres-customer-core
+          scrape_interval: 15s
+          static_configs:
+            - targets: ["${env:POSTGRES_CORE_EXPORTER_ENDPOINT}"]
+              labels:
+                db_instance: customer-core-db
+        - job_name: postgres-reference-data
+          scrape_interval: 15s
+          static_configs:
+            - targets: ["${env:POSTGRES_REF_EXPORTER_ENDPOINT}"]
+              labels:
+                db_instance: reference-data-db
 
 processors:
   memory_limiter:
@@ -57,7 +90,7 @@ service:
       processors: [memory_limiter, resource, batch]
       exporters: [otlp/tempo]
     metrics:
-      receivers: [otlp, prometheus/kong]
+      receivers: [otlp, prometheus/kong, prometheus/keycloak, prometheus/kafka, prometheus/postgres]
       processors: [memory_limiter, resource, batch]
       exporters: [otlphttp/mimir]
     logs:

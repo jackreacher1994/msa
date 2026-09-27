@@ -33,6 +33,11 @@ postgresql:
   enabled: true
   image: postgres:17-alpine
   storage: 1Gi
+  # postgres-exporter sidecar (pg_up, pg_stat_database_*, pg_database_size_bytes, ...). Scraped by OTel Collector.
+  exporter:
+    enabled: true
+    image: prometheuscommunity/postgres-exporter:v0.17.1
+    port: 9187
 
 resources:
   requests:

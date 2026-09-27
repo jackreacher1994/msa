@@ -59,6 +59,22 @@ spec:
               mountPath: /tmp/kraft-combined-logs
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+        {{- if .Values.exporter.enabled }}
+        # Prometheus bridge for topic/consumer-group metrics (kafka_brokers, kafka_topic_*, kafka_consumergroup_*).
+        - name: kafka-exporter
+          image: "{{ .Values.exporter.image.repository }}:{{ .Values.exporter.image.tag }}"
+          imagePullPolicy: {{ .Values.exporter.image.pullPolicy }}
+          args: ["--kafka.server=localhost:9092", "--web.listen-address=:9308"]
+          ports:
+            - name: metrics
+              containerPort: 9308
+          readinessProbe:
+            httpGet: {path: /metrics, port: metrics}
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          resources:
+            {{- toYaml .Values.exporter.resources | nindent 12 }}
+        {{- end }}
   volumeClaimTemplates:
     - metadata:
         name: data
@@ -81,3 +97,8 @@ spec:
     - name: kafka
       port: {{ .Values.service.port }}
       targetPort: kafka
+    {{- if .Values.exporter.enabled }}
+    - name: metrics
+      port: {{ .Values.service.exporterPort }}
+      targetPort: metrics
+    {{- end }}

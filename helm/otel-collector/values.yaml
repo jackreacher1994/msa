@@ -15,6 +15,11 @@ mimirOtlpEndpoint: http://mimir:9009/otlp
 tempoOtlpEndpoint: tempo:4317
 lokiOtlpEndpoint: http://loki:3100/otlp
 kongStatusEndpoint: kong:8100
+# Infra scrape targets (DNS names inside the cluster). Mirrors docker-compose wiring.
+keycloakMetricsEndpoint: keycloak:9000
+kafkaExporterEndpoint: kafka:9308
+postgresCoreExporterEndpoint: customer-core-service-db:9187
+postgresRefExporterEndpoint: reference-data-service-db:9187
 
 resources:
   requests:
