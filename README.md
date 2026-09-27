@@ -122,8 +122,12 @@ Also available: `GET /api/v1/customers/{id}` and `GET /api/v1/customers?limit=20
 Business errors map to HTTP: not found 404, duplicate email / not active 409, unsupported country 422,
 invalid data 400, reference data unavailable 503.
 
-Domain events are published by a logging adapter to keep the sample small; a Kafka adapter (ideally fed by a
-transactional outbox) would implement the same outbound port.
+Domain events are published to the **Kafka** topic `customer-events` (key = aggregate id, header
+`event-type`) by `KafkaCustomerEventPublisherAdapter`, which implements the same outbound port as the
+logging adapter (both are active by default, so each event is also a structured log record shipped to
+Loki). The send is synchronous with a bounded timeout so a broker outage surfaces as 503 and rolls the
+use-case transaction back; a production system would use a transactional outbox + relay instead.
+Set `APP_EVENTS_KAFKA_ENABLED=false` (or `kafka.enabled=false` in Helm) to run logging-only without a broker.
 
 ## Reference Data Service (CRUD / MVC)
 
@@ -231,13 +235,13 @@ mvn -B verify   # Java 21 + Maven 3.9; builds both services and runs unit/web-sl
 ## Kubernetes (Helm)
 
 One chart per component in `helm/`: `customer-core-service`, `reference-data-service`, `kong`, `keycloak`,
-`otel-collector`, `mimir`, `tempo`, `loki`, `grafana`. Service names are fixed (`fullnameOverride`) so charts find each
+`kafka`, `otel-collector`, `mimir`, `tempo`, `loki`, `grafana`. Service names are fixed (`fullnameOverride`) so charts find each
 other by DNS; everything is configurable in each chart's `values.yaml` (images, replicas, resources, URLs,
 credentials, rate limit, JWT issuer/key, database, etc.).
 
 ```bash
 kubectl create namespace customer-msa
-for c in otel-collector mimir tempo loki grafana keycloak reference-data-service customer-core-service kong; do
+for c in otel-collector mimir tempo loki grafana keycloak kafka reference-data-service customer-core-service kong; do
   helm upgrade --install $c ./helm/$c -n customer-msa
 done
 kubectl -n customer-msa port-forward svc/keycloak 8080:8080 &
@@ -253,5 +257,5 @@ Notes:
 
 ## Educational simplifications
 
-Password grant for demos, single-binary Mimir/Tempo/Loki with local filesystem storage, logging event publisher instead of a broker/outbox, no
-retries/circuit breaker beyond timeouts, dev-only Keycloak key, and default credentials everywhere.
+Password grant for demos, single-binary Mimir/Tempo/Loki with local filesystem storage, single-node Kafka (KRaft)
+without an outbox relay, no retries/circuit breaker beyond timeouts, dev-only Keycloak key, and default credentials everywhere.

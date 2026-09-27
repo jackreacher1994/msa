@@ -61,6 +61,11 @@
             <artifactId>postgresql</artifactId>
             <scope>runtime</scope>
         </dependency>
+        <!-- Event backend: Kafka implementation of the CustomerEventPublisherOutboundPort. -->
+        <dependency>
+            <groupId>org.springframework.kafka</groupId>
+            <artifactId>spring-kafka</artifactId>
+        </dependency>
         <!-- Vendor-neutral telemetry API only; the OpenTelemetry Java agent supplies the SDK at runtime. -->
         <dependency>
             <groupId>io.opentelemetry</groupId>

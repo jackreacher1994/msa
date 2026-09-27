@@ -14,6 +14,11 @@ service:
 env:
   JWT_JWK_SET_URI: http://keycloak:8080/realms/customer/protocol/openid-connect/certs
   REFERENCE_DATA_BASE_URL: http://reference-data-service:8082
+# Event backend (Kafka). Point at a managed Kafka in production; set kafkaEnabled=false to run logging-only.
+kafka:
+  bootstrapServers: kafka:9092
+  eventsTopic: customer-events
+  enabled: true
 # OpenTelemetry Java agent settings (standard OTEL_* variables, vendor neutral).
 otel:
   endpoint: http://otel-collector:4318

@@ -29,6 +29,27 @@ reference-data:
   connect-timeout: ${REFERENCE_DATA_CONNECT_TIMEOUT:2s}
   read-timeout: ${REFERENCE_DATA_READ_TIMEOUT:3s}
 
+spring:
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      acks: all
+      retries: 3
+      properties:
+        enable.idempotence: true
+        max.in.flight.requests.per.connection: 5
+    admin:
+      # Topics are provisioned by the platform (compose/helm); the service must not require admin rights.
+      auto-create: false
+
+app:
+  events:
+    topic: ${EVENTS_TOPIC:customer-events}
+    # Set to false to run without a broker (logging adapter only).
+    kafka-enabled: ${APP_EVENTS_KAFKA_ENABLED:true}
+
 management:
   endpoints:
     web:

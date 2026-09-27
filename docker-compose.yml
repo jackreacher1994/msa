@@ -38,6 +38,30 @@ services:
       interval: 5s
       retries: 20
 
+  # ---------- Event backend: Kafka (KRaft, single node for local dev) ----------
+  kafka:
+    image: apache/kafka:3.9.0
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://:19092,EXTERNAL://:9092,CONTROLLER://:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:19092,EXTERNAL://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      CLUSTER_ID: 123e4567-e89b-12d3-a456-426614174000
+    ports: ["9092:9092"]
+    volumes: [kafka-data:/tmp/kraft-combined-logs]
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-topics.sh --bootstrap-server localhost:9092 --list"]
+      interval: 10s
+      retries: 20
+      start_period: 20s
+
   # ---------- Microservices ----------
   customer-core-service:
     build:
@@ -53,10 +77,13 @@ services:
       DB_PASSWORD: customer_core
       JWT_JWK_SET_URI: http://keycloak:8080/realms/customer/protocol/openid-connect/certs
       REFERENCE_DATA_BASE_URL: http://reference-data-service:8082
+      KAFKA_BOOTSTRAP_SERVERS: kafka:19092
+      EVENTS_TOPIC: customer-events
     depends_on:
       customer-core-db: {condition: service_healthy}
       reference-data-service: {condition: service_started}
       otel-collector: {condition: service_started}
+      kafka: {condition: service_healthy}
     healthcheck:
       test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/localhost/8081 && printf \"GET /actuator/health/readiness HTTP/1.0\\r\\n\\r\\n\" >&3 && grep -q UP <&3'"]
       interval: 10s
@@ -162,6 +189,7 @@ services:
 
 volumes:
   customer-core-db:
+  kafka-data:
   reference-data-db:
   mimir-data:
   tempo-data:

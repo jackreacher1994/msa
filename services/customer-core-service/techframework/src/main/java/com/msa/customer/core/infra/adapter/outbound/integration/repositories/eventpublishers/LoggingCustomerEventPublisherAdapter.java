@@ -9,10 +9,11 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 
 /**
- * Outbound event publisher adapter. To keep the sample small it publishes domain events as structured
- * log records (which the OpenTelemetry agent ships to the Collector). A production system would add an
- * {@code eventpublishers.kafka} adapter implementing the same port, ideally fed by a transactional outbox
- * so that the state change and the event are committed atomically.
+ * Observability side of event publishing: every domain event is also a structured log record
+ * (which the OpenTelemetry agent ships to the Collector/Loki). The integration backend is the
+ * Kafka adapter ({@link KafkaCustomerEventPublisherAdapter}) implementing the same port;
+ * both adapters are active by default. Set {@code app.events.kafka-enabled=false} to run
+ * without a broker (logging only).
  */
 @Component
 public class LoggingCustomerEventPublisherAdapter implements CustomerEventPublisherOutboundPort {
