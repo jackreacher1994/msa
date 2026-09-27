@@ -41,6 +41,27 @@ spec:
           volumeMounts:
             - name: data
               mountPath: /var/lib/postgresql/data
+        {{- if .Values.postgresql.exporter.enabled }}
+        # postgres-exporter sidecar (pg_up, pg_stat_database_*, pg_database_size_bytes, ...).
+        - name: postgres-exporter
+          image: {{ .Values.postgresql.exporter.image }}
+          ports:
+            - name: metrics
+              containerPort: {{ .Values.postgresql.exporter.port }}
+          env:
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef: {name: {{ $secret }}, key: username}
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef: {name: {{ $secret }}, key: password}
+            - name: DATA_SOURCE_NAME
+              value: {{ printf "postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@localhost:5432/%s?sslmode=disable" .Values.database.name | quote }}
+          readinessProbe:
+            httpGet: {path: /metrics, port: metrics}
+            initialDelaySeconds: 10
+            periodSeconds: 15
+        {{- end }}
   volumeClaimTemplates:
     - metadata:
         name: data
@@ -63,4 +84,9 @@ spec:
     - name: postgres
       port: 5432
       targetPort: postgres
+    {{- if .Values.postgresql.exporter.enabled }}
+    - name: metrics
+      port: {{ .Values.postgresql.exporter.port }}
+      targetPort: metrics
+    {{- end }}
 {{- end }}

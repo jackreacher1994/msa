@@ -9,6 +9,21 @@ image:
 service:
   type: ClusterIP
   port: 9092
+  exporterPort: 9308
+
+# kafka-exporter sidecar (Prometheus bridge, scraped by the OTel Collector).
+exporter:
+  enabled: true
+  image:
+    repository: danielqsj/kafka-exporter
+    tag: v1.7.0
+    pullPolicy: IfNotPresent
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      memory: 128Mi
 
 # Single-node KRaft cluster id (must be a UUID; reused across restarts for the same volume).
 clusterId: 123e4567-e89b-12d3-a456-426614174000

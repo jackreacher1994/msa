@@ -62,6 +62,31 @@ services:
       retries: 20
       start_period: 20s
 
+  # Kafka -> Prometheus bridge (danielqsj/kafka-exporter). Scraped by the OTel Collector.
+  kafka-exporter:
+    image: danielqsj/kafka-exporter:v1.7.0
+    command: ["--kafka.server=kafka:19092", "--web.listen-address=:9308", "--log.level=info"]
+    ports: ["9308:9308"]
+    depends_on:
+      kafka: {condition: service_healthy}
+
+  # ---------- Postgres exporters (one per database-per-service store) ----------
+  customer-core-db-exporter:
+    image: prometheuscommunity/postgres-exporter:v0.17.1
+    environment:
+      DATA_SOURCE_NAME: postgresql://customer_core:customer_core@customer-core-db:5432/customer_core?sslmode=disable
+    ports: ["9187:9187"]
+    depends_on:
+      customer-core-db: {condition: service_healthy}
+
+  reference-data-db-exporter:
+    image: prometheuscommunity/postgres-exporter:v0.17.1
+    environment:
+      DATA_SOURCE_NAME: postgresql://reference_data:reference_data@reference-data-db:5432/reference_data?sslmode=disable
+    ports: ["9188:9187"]
+    depends_on:
+      reference-data-db: {condition: service_healthy}
+
   # ---------- Microservices ----------
   customer-core-service:
     build:
@@ -129,7 +154,7 @@ services:
 
   keycloak:
     image: quay.io/keycloak/keycloak:26.3
-    command: ["start-dev", "--import-realm"]
+    command: ["start-dev", "--import-realm", "--metrics-enabled=true", "--health-enabled=true", "--http-metrics-histograms-enabled=true"]
     environment:
       KC_BOOTSTRAP_ADMIN_USERNAME: admin
       KC_BOOTSTRAP_ADMIN_PASSWORD: admin
@@ -139,8 +164,9 @@ services:
       KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "true"
       KC_HTTP_ENABLED: "true"
       KC_HEALTH_ENABLED: "true"
+      KC_METRICS_ENABLED: "true"
     volumes: ["./infra/keycloak/customer-realm.json:/opt/keycloak/data/import/customer-realm.json:ro"]
-    ports: ["8080:8080"]
+    ports: ["8080:8080", "9000:9000"]
 
   # ---------- Observability (OpenTelemetry-first, Grafana LGTM) ----------
   otel-collector:
@@ -151,6 +177,10 @@ services:
       TEMPO_OTLP_ENDPOINT: tempo:4317
       LOKI_OTLP_ENDPOINT: http://loki:3100/otlp
       KONG_STATUS_ENDPOINT: kong:8100
+      KEYCLOAK_METRICS_ENDPOINT: keycloak:9000
+      KAFKA_EXPORTER_ENDPOINT: kafka-exporter:9308
+      POSTGRES_CORE_EXPORTER_ENDPOINT: customer-core-db-exporter:9187
+      POSTGRES_REF_EXPORTER_ENDPOINT: reference-data-db-exporter:9187
       DEPLOYMENT_ENVIRONMENT: local
     volumes: ["./infra/otel-collector/otel-collector-config.yaml:/etc/otelcol/config.yaml:ro"]
     ports: ["4317:4317", "4318:4318"]

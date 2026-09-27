@@ -1,0 +1,152 @@
+{
+  "uid": "keycloak-overview",
+  "title": "Keycloak - Overview",
+  "tags": ["keycloak", "oidc", "customer-msa"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "10s",
+  "time": {"from": "now-30m", "to": "now"},
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Uptime",
+      "datasource": {"type": "prometheus", "uid": "mimir"},
+      "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0},
+      "fieldConfig": {"defaults": {"unit": "s"}, "overrides": []},
+      "targets": [
+        {"refId": "A", "expr": "process_uptime_seconds", "legendFormat": "uptime", "datasource": {"type": "prometheus", "uid": "mimir"}}
+      ]
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "HTTP requests (5m)",
+      "datasource": {"type": "prometheus", "uid": "mimir"},
+      "gridPos": {"h": 4, "w": 6, "x": 6, "y": 0},
+      "targets": [
+        {"refId": "A", "expr": "sum(increase(http_server_requests_seconds_count[5m]))", "legendFormat": "requests", "datasource": {"type": "prometheus", "uid": "mimir"}}
+      ]
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Error rate 5xx (5m)",
+      "datasource": {"type": "prometheus", "uid": "mimir"},
+      "gridPos": {"h": 4, "w": 6, "x": 12, "y": 0},
+      "fieldConfig": {"defaults": {"unit": "percentunit"}, "overrides": []},
+      "targets": [
+        {"refId": "A", "expr": "sum(rate(http_server_requests_seconds_count{status=~\"5..\"}[5m])) / sum(rate(http_server_requests_seconds_count[5m]))", "legendFormat": "5xx ratio", "datasource": {"type": "prometheus", "uid": "mimir"}}
+      ]
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Active HTTP requests",
+      "datasource": {"type": "prometheus", "uid": "mimir"},
+      "gridPos": {"h": 4, "w": 6, "x": 18, "y": 0},
+      "targets": [
+        {"refId": "A", "expr": "http_server_active_requests", "legendFormat": "active", "datasource": {"type": "prometheus", "uid": "mimir"}}
+      ]
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "HTTP request rate by uri/status",
+      "datasource": {"type": "prometheus", "uid": "mimir"},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4},
+      "fieldConfig": {"defaults": {"unit": "reqps"}, "overrides": []},
+      "targets": [
+        {"refId": "A", "expr": "sum by (uri, method, status) (rate(http_server_requests_seconds_count[1m]))", "legendFormat": "{{method}} {{uri}} {{status}}", "datasource": {"type": "prometheus", "uid": "mimir"}}
+      ]
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "HTTP p95 latency by uri",
+      "datasource": {"type": "prometheus", "uid": "mimir"},
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 4},
+      "fieldConfig": {"defaults": {"unit": "s"}, "overrides": []},
+      "targets": [
+        {"refId": "A", "expr": "histogram_quantile(0.95, sum by (uri, le) (rate(http_server_requests_seconds_bucket[5m])))", "legendFormat": "{{uri}}", "datasource": {"type": "prometheus", "uid": "mimir"}}
+      ]
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "JVM heap used / committed / max",
+      "datasource": {"type": "prometheus", "uid": "mimir"},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 12},
+      "fieldConfig": {"defaults": {"unit": "bytes"}, "overrides": []},
+      "targets": [
+        {"refId": "A", "expr": "sum by (area) (jvm_memory_used_bytes{area=\"heap\"})", "legendFormat": "heap used", "datasource": {"type": "prometheus", "uid": "mimir"}},
+        {"refId": "B", "expr": "sum by (area) (jvm_memory_committed_bytes{area=\"heap\"})", "legendFormat": "heap committed", "datasource": {"type": "prometheus", "uid": "mimir"}},
+        {"refId": "C", "expr": "sum by (area) (jvm_memory_max_bytes{area=\"heap\"})", "legendFormat": "heap max", "datasource": {"type": "prometheus", "uid": "mimir"}}
+      ]
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "JVM threads and GC pauses",
+      "datasource": {"type": "prometheus", "uid": "mimir"},
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 12},
+      "fieldConfig": {"defaults": {"unit": "short"}, "overrides": []},
+      "targets": [
+        {"refId": "A", "expr": "jvm_threads_live_threads", "legendFormat": "live threads", "datasource": {"type": "prometheus", "uid": "mimir"}},
+        {"refId": "B", "expr": "sum(rate(jvm_gc_pause_seconds_count[5m]))", "legendFormat": "gc pauses/sec", "datasource": {"type": "prometheus", "uid": "mimir"}},
+        {"refId": "C", "expr": "jvm_gc_overhead", "legendFormat": "gc overhead", "datasource": {"type": "prometheus", "uid": "mimir"}}
+      ]
+    },
+    {
+      "id": 9,
+      "type": "timeseries",
+      "title": "DB pool (Agroal): active / available / awaiting",
+      "datasource": {"type": "prometheus", "uid": "mimir"},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 20},
+      "fieldConfig": {"defaults": {"unit": "short"}, "overrides": []},
+      "targets": [
+        {"refId": "A", "expr": "agroal_active_count", "legendFormat": "active", "datasource": {"type": "prometheus", "uid": "mimir"}},
+        {"refId": "B", "expr": "agroal_available_count", "legendFormat": "available", "datasource": {"type": "prometheus", "uid": "mimir"}},
+        {"refId": "C", "expr": "agroal_awaiting_count", "legendFormat": "awaiting", "datasource": {"type": "prometheus", "uid": "mimir"}},
+        {"refId": "D", "expr": "agroal_max_used_count", "legendFormat": "max used", "datasource": {"type": "prometheus", "uid": "mimir"}}
+      ]
+    },
+    {
+      "id": 10,
+      "type": "timeseries",
+      "title": "Infinispan cache entries / evictions",
+      "datasource": {"type": "prometheus", "uid": "mimir"},
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 20},
+      "fieldConfig": {"defaults": {"unit": "short"}, "overrides": []},
+      "targets": [
+        {"refId": "A", "expr": "vendor_statistics_approximate_entries", "legendFormat": "entries {{cache}}", "datasource": {"type": "prometheus", "uid": "mimir"}},
+        {"refId": "B", "expr": "sum(rate(cache_evictions[5m]))", "legendFormat": "evictions/sec", "datasource": {"type": "prometheus", "uid": "mimir"}},
+        {"refId": "C", "expr": "cache_size", "legendFormat": "caffeine {{cache}}", "datasource": {"type": "prometheus", "uid": "mimir"}}
+      ]
+    },
+    {
+      "id": 11,
+      "type": "timeseries",
+      "title": "Login events (needs --features=user-event-metrics)",
+      "datasource": {"type": "prometheus", "uid": "mimir"},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 28},
+      "fieldConfig": {"defaults": {"unit": "short"}, "overrides": []},
+      "targets": [
+        {"refId": "A", "expr": "sum by (realm, event, error) (rate(keycloak_user_events_total[5m]))", "legendFormat": "{{realm}} {{event}} {{error}}", "datasource": {"type": "prometheus", "uid": "mimir"}}
+      ]
+    },
+    {
+      "id": 12,
+      "type": "timeseries",
+      "title": "CPU usage (process / system)",
+      "datasource": {"type": "prometheus", "uid": "mimir"},
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 28},
+      "fieldConfig": {"defaults": {"unit": "percentunit"}, "overrides": []},
+      "targets": [
+        {"refId": "A", "expr": "process_cpu_usage", "legendFormat": "process", "datasource": {"type": "prometheus", "uid": "mimir"}},
+        {"refId": "B", "expr": "system_cpu_usage", "legendFormat": "system", "datasource": {"type": "prometheus", "uid": "mimir"}}
+      ]
+    }
+  ]
+}

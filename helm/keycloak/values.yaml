@@ -8,12 +8,17 @@ image:
 service:
   type: ClusterIP
   port: 8080
+  managementPort: 9000
 
 # Public URL of Keycloak; it determines the `iss` claim that Kong trusts (keep in sync with kong.jwt.issuer).
 hostname: http://localhost:8080
 
 # `start-dev` uses an embedded H2 database. For production use `start` and configure `database` below.
-args: ["start-dev", "--import-realm"]
+args: ["start-dev", "--import-realm", "--metrics-enabled=true", "--health-enabled=true", "--http-metrics-histograms-enabled=true"]
+
+# Prometheus metrics on the management interface (:9000/metrics). Scraped by the OTel Collector.
+metrics:
+  enabled: true
 
 admin:
   username: admin

@@ -1,0 +1,143 @@
+{
+  "uid": "kafka-overview",
+  "title": "Kafka - Overview",
+  "tags": ["kafka", "events", "customer-msa"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "10s",
+  "time": {"from": "now-30m", "to": "now"},
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Brokers online",
+      "datasource": {"type": "prometheus", "uid": "mimir"},
+      "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0},
+      "targets": [
+        {"refId": "A", "expr": "kafka_brokers", "legendFormat": "brokers", "datasource": {"type": "prometheus", "uid": "mimir"}}
+      ]
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Topics",
+      "datasource": {"type": "prometheus", "uid": "mimir"},
+      "gridPos": {"h": 4, "w": 6, "x": 6, "y": 0},
+      "targets": [
+        {"refId": "A", "expr": "count(kafka_topic_partitions)", "legendFormat": "topics", "datasource": {"type": "prometheus", "uid": "mimir"}}
+      ]
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Under-replicated partitions",
+      "datasource": {"type": "prometheus", "uid": "mimir"},
+      "gridPos": {"h": 4, "w": 6, "x": 12, "y": 0},
+      "targets": [
+        {"refId": "A", "expr": "sum(kafka_topic_partition_under_replicated_partition)", "legendFormat": "under-replicated", "datasource": {"type": "prometheus", "uid": "mimir"}}
+      ]
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Total consumer lag (all groups)",
+      "datasource": {"type": "prometheus", "uid": "mimir"},
+      "gridPos": {"h": 4, "w": 6, "x": 18, "y": 0},
+      "targets": [
+        {"refId": "A", "expr": "sum(kafka_consumergroup_lag_sum)", "legendFormat": "lag", "datasource": {"type": "prometheus", "uid": "mimir"}}
+      ]
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Partitions per topic",
+      "datasource": {"type": "prometheus", "uid": "mimir"},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4},
+      "fieldConfig": {"defaults": {"unit": "short"}, "overrides": []},
+      "targets": [
+        {"refId": "A", "expr": "kafka_topic_partitions", "legendFormat": "{{topic}}", "datasource": {"type": "prometheus", "uid": "mimir"}}
+      ]
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "Log end offset by topic/partition",
+      "datasource": {"type": "prometheus", "uid": "mimir"},
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 4},
+      "fieldConfig": {"defaults": {"unit": "short"}, "overrides": []},
+      "targets": [
+        {"refId": "A", "expr": "kafka_topic_partition_current_offset", "legendFormat": "{{topic}} p{{partition}}", "datasource": {"type": "prometheus", "uid": "mimir"}}
+      ]
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "Produce rate (offsets/sec) by topic",
+      "datasource": {"type": "prometheus", "uid": "mimir"},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 12},
+      "fieldConfig": {"defaults": {"unit": "reqps"}, "overrides": []},
+      "targets": [
+        {"refId": "A", "expr": "sum by (topic) (rate(kafka_topic_partition_current_offset[5m]))", "legendFormat": "{{topic}}", "datasource": {"type": "prometheus", "uid": "mimir"}}
+      ]
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "Messages retained (end - oldest) by topic/partition",
+      "datasource": {"type": "prometheus", "uid": "mimir"},
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 12},
+      "fieldConfig": {"defaults": {"unit": "short"}, "overrides": []},
+      "targets": [
+        {"refId": "A", "expr": "kafka_topic_partition_current_offset - kafka_topic_partition_oldest_offset", "legendFormat": "{{topic}} p{{partition}}", "datasource": {"type": "prometheus", "uid": "mimir"}}
+      ]
+    },
+    {
+      "id": 9,
+      "type": "timeseries",
+      "title": "Consumer lag by group/topic/partition",
+      "datasource": {"type": "prometheus", "uid": "mimir"},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 20},
+      "fieldConfig": {"defaults": {"unit": "short"}, "overrides": []},
+      "targets": [
+        {"refId": "A", "expr": "kafka_consumergroup_lag", "legendFormat": "{{consumergroup}} {{topic}} p{{partition}}", "datasource": {"type": "prometheus", "uid": "mimir"}},
+        {"refId": "B", "expr": "kafka_consumergroup_lag_sum", "legendFormat": "sum {{consumergroup}} {{topic}}", "datasource": {"type": "prometheus", "uid": "mimir"}}
+      ]
+    },
+    {
+      "id": 10,
+      "type": "timeseries",
+      "title": "Consumer offset by group/topic",
+      "datasource": {"type": "prometheus", "uid": "mimir"},
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 20},
+      "fieldConfig": {"defaults": {"unit": "short"}, "overrides": []},
+      "targets": [
+        {"refId": "A", "expr": "kafka_consumergroup_current_offset", "legendFormat": "{{consumergroup}} {{topic}} p{{partition}}", "datasource": {"type": "prometheus", "uid": "mimir"}}
+      ]
+    },
+    {
+      "id": 11,
+      "type": "timeseries",
+      "title": "Replication health per partition",
+      "datasource": {"type": "prometheus", "uid": "mimir"},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 28},
+      "fieldConfig": {"defaults": {"unit": "short"}, "overrides": []},
+      "targets": [
+        {"refId": "A", "expr": "kafka_topic_partition_replicas", "legendFormat": "replicas {{topic}} p{{partition}}", "datasource": {"type": "prometheus", "uid": "mimir"}},
+        {"refId": "B", "expr": "kafka_topic_partition_in_sync_replica", "legendFormat": "in-sync {{topic}} p{{partition}}", "datasource": {"type": "prometheus", "uid": "mimir"}},
+        {"refId": "C", "expr": "kafka_topic_partition_under_replicated_partition", "legendFormat": "under-replicated {{topic}} p{{partition}}", "datasource": {"type": "prometheus", "uid": "mimir"}}
+      ]
+    },
+    {
+      "id": 12,
+      "type": "timeseries",
+      "title": "Partition leader",
+      "datasource": {"type": "prometheus", "uid": "mimir"},
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 28},
+      "fieldConfig": {"defaults": {"unit": "short"}, "overrides": []},
+      "targets": [
+        {"refId": "A", "expr": "kafka_topic_partition_leader", "legendFormat": "leader {{topic}} p{{partition}}", "datasource": {"type": "prometheus", "uid": "mimir"}}
+      ]
+    }
+  ]
+}
