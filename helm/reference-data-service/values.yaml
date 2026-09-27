@@ -14,7 +14,7 @@ service:
 env:
   JWT_JWK_SET_URI: http://keycloak:8080/realms/customer/protocol/openid-connect/certs
 
-# OpenTelemetry Java agent settings (standard OTEL_* variables, vendor neutral).
+# OpenTelemetry extension settings (standard OTEL_* variables, vendor neutral; no javaagent).
 otel:
   endpoint: http://otel-collector:4318
   resourceAttributes: service.namespace=customer-msa,deployment.environment.name=production

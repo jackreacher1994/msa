@@ -1,7 +1,7 @@
 package com.msa.customer.core.infra.adapter.inbound.restful.controllers;
 
 import com.msa.customer.core.domain.aggregateroots.CustomerDomainEntity;
-import com.msa.customer.core.infra.adapter.inbound.restful.apis.dtos.CustomerResponseDTO;
+import com.msa.customer.core.infra.adapter.inbound.restful.apis.dtos.CustomerResponse;
 
 import java.time.ZoneOffset;
 
@@ -11,15 +11,15 @@ final class CustomerRestMapper {
     private CustomerRestMapper() {
     }
 
-    static CustomerResponseDTO toResponse(CustomerDomainEntity customer) {
-        return new CustomerResponseDTO()
-                .id(customer.getId().value())
-                .fullName(customer.getFullName().value())
-                .email(customer.getEmail().value())
-                .phoneNumber(customer.getPhoneNumber().value())
-                .countryCode(customer.getCountryCode().value())
-                .status(CustomerResponseDTO.StatusEnum.fromValue(customer.getStatus().name()))
-                .registeredAt(customer.getRegisteredAt().atOffset(ZoneOffset.UTC))
-                .updatedAt(customer.getUpdatedAt().atOffset(ZoneOffset.UTC));
+    static CustomerResponse toResponse(CustomerDomainEntity customer) {
+        return new CustomerResponse(
+                customer.getId().value(),
+                customer.getFullName().value(),
+                customer.getEmail().value(),
+                customer.getPhoneNumber().value(),
+                customer.getCountryCode().value(),
+                customer.getStatus().name(),
+                customer.getRegisteredAt().atOffset(ZoneOffset.UTC),
+                customer.getUpdatedAt().atOffset(ZoneOffset.UTC));
     }
 }

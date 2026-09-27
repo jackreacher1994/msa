@@ -1,7 +1,9 @@
 package com.msa.customer.referencedata.dto;
 
 import com.msa.customer.referencedata.entity.Country;
+import io.quarkus.runtime.annotations.RegisterForReflection;
 
+@RegisterForReflection
 public record CountryResponse(String code, String name, String dialCode, boolean active) {
 
     public static CountryResponse from(Country country) {

@@ -54,15 +54,15 @@ spec:
             - name: {{ $k }}
               value: {{ $v | quote }}
             {{- end }}
-          # Kubernetes probes backed by Spring Boot Actuator health groups.
+          # Kubernetes probes backed by Quarkus SmallRye Health.
           startupProbe:
-            httpGet: {path: /actuator/health/liveness, port: http}
+            httpGet: {path: /q/health/live, port: http}
             periodSeconds: 5
             failureThreshold: 36
           livenessProbe:
-            httpGet: {path: /actuator/health/liveness, port: http}
+            httpGet: {path: /q/health/live, port: http}
           readinessProbe:
-            httpGet: {path: /actuator/health/readiness, port: http}
+            httpGet: {path: /q/health/ready, port: http}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
       {{- with .Values.nodeSelector }}

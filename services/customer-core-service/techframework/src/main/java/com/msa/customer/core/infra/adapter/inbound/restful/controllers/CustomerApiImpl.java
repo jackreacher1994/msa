@@ -6,60 +6,83 @@ import com.msa.customer.core.domain.commands.RegisterCustomerCommand;
 import com.msa.customer.core.domain.commands.UpdateCustomerProfileCommand;
 import com.msa.customer.core.domain.queries.FindAllCustomersQuery;
 import com.msa.customer.core.domain.queries.GetCustomerByIdQuery;
-import com.msa.customer.core.infra.adapter.inbound.restful.apis.CustomersApi;
-import com.msa.customer.core.infra.adapter.inbound.restful.apis.dtos.CustomerResponseDTO;
-import com.msa.customer.core.infra.adapter.inbound.restful.apis.dtos.RegisterCustomerRequestDTO;
-import com.msa.customer.core.infra.adapter.inbound.restful.apis.dtos.UpdateCustomerProfileRequestDTO;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.RestController;
+import com.msa.customer.core.infra.adapter.inbound.restful.apis.dtos.CustomerResponse;
+import com.msa.customer.core.infra.adapter.inbound.restful.apis.dtos.RegisterCustomerRequest;
+import com.msa.customer.core.infra.adapter.inbound.restful.apis.dtos.UpdateCustomerProfileRequest;
+import com.msa.customer.core.infra.adapter.outbound.aop.observability.ObservedUseCase;
+import io.quarkus.security.Authenticated;
+import jakarta.inject.Inject;
+import jakarta.transaction.Transactional;
+import jakarta.validation.Valid;
+import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.DefaultValue;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.PUT;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.QueryParam;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
 
 import java.util.List;
 import java.util.UUID;
 
 /**
- * Inbound (driving) REST adapter. Implements the interface generated from the OpenAPI contract
- * (API-first), translates DTOs into domain commands/queries and delegates to the inbound ports.
- * It never touches repositories or the domain's internals directly.
+ * Inbound (driving) REST adapter. Implements the OpenAPI contract
+ * (POST/GET /api/v1/customers, GET /api/v1/customers/{id}, PUT .../profile),
+ * translates DTOs into domain commands/queries and delegates to inbound ports.
  */
-@RestController
-public class CustomerApiImpl implements CustomersApi {
+@Path("/api/v1/customers")
+@Produces(MediaType.APPLICATION_JSON)
+@Consumes(MediaType.APPLICATION_JSON)
+@Authenticated
+public class CustomerApiImpl {
 
     private final CustomerCommandInboundPort customerCommandInboundPort;
     private final CustomerQueryInboundPort customerQueryInboundPort;
 
+    @Inject
     public CustomerApiImpl(CustomerCommandInboundPort customerCommandInboundPort,
                            CustomerQueryInboundPort customerQueryInboundPort) {
         this.customerCommandInboundPort = customerCommandInboundPort;
         this.customerQueryInboundPort = customerQueryInboundPort;
     }
 
-    @Override
-    public ResponseEntity<CustomerResponseDTO> registerCustomer(RegisterCustomerRequestDTO request) {
-        var command = new RegisterCustomerCommand(request.getFullName(), request.getEmail(),
-                request.getPhoneNumber(), request.getCountryCode());
+    @POST
+    @Transactional
+    @ObservedUseCase
+    public Response registerCustomer(@Valid RegisterCustomerRequest request) {
+        var command = new RegisterCustomerCommand(request.fullName(), request.email(),
+                request.phoneNumber(), request.countryCode());
         var customer = customerCommandInboundPort.registerCustomer(command);
-        return ResponseEntity.status(HttpStatus.CREATED).body(CustomerRestMapper.toResponse(customer));
+        return Response.status(Response.Status.CREATED).entity(CustomerRestMapper.toResponse(customer)).build();
     }
 
-    @Override
-    public ResponseEntity<CustomerResponseDTO> updateCustomerProfile(UUID customerId,
-                                                                     UpdateCustomerProfileRequestDTO request) {
-        var command = new UpdateCustomerProfileCommand(customerId, request.getFullName(),
-                request.getPhoneNumber(), request.getCountryCode());
-        var customer = customerCommandInboundPort.updateCustomerProfile(command);
-        return ResponseEntity.ok(CustomerRestMapper.toResponse(customer));
+    @PUT
+    @Path("/{customerId}/profile")
+    @Transactional
+    @ObservedUseCase
+    public CustomerResponse updateCustomerProfile(@PathParam("customerId") UUID customerId,
+                                                  @Valid UpdateCustomerProfileRequest request) {
+        var command = new UpdateCustomerProfileCommand(customerId, request.fullName(),
+                request.phoneNumber(), request.countryCode());
+        return CustomerRestMapper.toResponse(customerCommandInboundPort.updateCustomerProfile(command));
     }
 
-    @Override
-    public ResponseEntity<CustomerResponseDTO> getCustomerById(UUID customerId) {
+    @GET
+    @Path("/{customerId}")
+    @ObservedUseCase
+    public CustomerResponse getCustomerById(@PathParam("customerId") UUID customerId) {
         var customer = customerQueryInboundPort.getCustomerById(new GetCustomerByIdQuery(customerId));
-        return ResponseEntity.ok(CustomerRestMapper.toResponse(customer));
+        return CustomerRestMapper.toResponse(customer);
     }
 
-    @Override
-    public ResponseEntity<List<CustomerResponseDTO>> getCustomers(Integer limit) {
-        var customers = customerQueryInboundPort.findAllCustomers(new FindAllCustomersQuery(limit == null ? 20 : limit));
-        return ResponseEntity.ok(customers.stream().map(CustomerRestMapper::toResponse).toList());
+    @GET
+    @ObservedUseCase
+    public List<CustomerResponse> getCustomers(@QueryParam("limit") @DefaultValue("20") Integer limit) {
+        var customers = customerQueryInboundPort.findAllCustomers(new FindAllCustomersQuery(limit));
+        return customers.stream().map(CustomerRestMapper::toResponse).toList();
     }
 }

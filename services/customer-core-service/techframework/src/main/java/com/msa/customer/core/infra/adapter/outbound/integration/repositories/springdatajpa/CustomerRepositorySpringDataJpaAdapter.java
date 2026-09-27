@@ -9,23 +9,23 @@ import com.msa.customer.core.domain.valueobjects.EmailAddress;
 import com.msa.customer.core.domain.valueobjects.FullName;
 import com.msa.customer.core.domain.valueobjects.PhoneNumber;
 import com.msa.customer.core.infra.adapter.outbound.integration.repositories.springdatajpa.entities.CustomerJpaEntity;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
-import org.springframework.stereotype.Component;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 
 import java.util.List;
 import java.util.Optional;
 
 /**
- * Outbound (driven) persistence adapter: implements the application's repository port with Spring Data JPA
+ * Outbound (driven) persistence adapter: implements the application's repository port with JPA
  * and maps between the domain aggregate and the JPA entity. Replacing JPA (e.g. with JDBC or MongoDB)
  * means writing another adapter; the domain and application modules stay untouched.
  */
-@Component
+@ApplicationScoped
 public class CustomerRepositorySpringDataJpaAdapter implements CustomerRepositoryOutboundPort {
 
     private final CustomerRepositorySpringDataJpa customerRepositorySpringDataJpa;
 
+    @Inject
     public CustomerRepositorySpringDataJpaAdapter(CustomerRepositorySpringDataJpa customerRepositorySpringDataJpa) {
         this.customerRepositorySpringDataJpa = customerRepositorySpringDataJpa;
     }
@@ -47,8 +47,9 @@ public class CustomerRepositorySpringDataJpaAdapter implements CustomerRepositor
 
     @Override
     public List<CustomerDomainEntity> findAll(int limit) {
-        var page = PageRequest.of(0, limit, Sort.by(Sort.Direction.DESC, "registeredAt"));
-        return customerRepositorySpringDataJpa.findAll(page).map(this::toDomain).getContent();
+        return customerRepositorySpringDataJpa.findAllOrderedByRegisteredAtDesc(limit).stream()
+                .map(this::toDomain)
+                .toList();
     }
 
     private CustomerJpaEntity toJpa(CustomerDomainEntity c) {

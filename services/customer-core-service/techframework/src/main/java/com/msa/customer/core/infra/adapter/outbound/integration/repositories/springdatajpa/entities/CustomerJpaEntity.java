@@ -1,5 +1,6 @@
 package com.msa.customer.core.infra.adapter.outbound.integration.repositories.springdatajpa.entities;
 
+import io.quarkus.runtime.annotations.RegisterForReflection;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
@@ -15,6 +16,7 @@ import java.util.UUID;
  */
 @Entity
 @Table(name = "customers")
+@RegisterForReflection
 public class CustomerJpaEntity {
 
     @Id

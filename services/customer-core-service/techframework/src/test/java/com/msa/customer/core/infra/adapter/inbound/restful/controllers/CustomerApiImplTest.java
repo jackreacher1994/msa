@@ -5,67 +5,66 @@ import com.msa.customer.core.application.ports.inbound.queryservices.CustomerQue
 import com.msa.customer.core.domain.aggregateroots.CustomerDomainEntity;
 import com.msa.customer.core.domain.commands.RegisterCustomerCommand;
 import com.msa.customer.core.domain.exceptions.business.DuplicateCustomerEmailException;
-import com.msa.customer.core.infra.adapter.inbound.restful.aop.security.SecurityConfig;
+import io.quarkus.test.InjectMock;
+import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.security.TestSecurity;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.context.annotation.Import;
-import org.springframework.http.MediaType;
-import org.springframework.security.oauth2.jwt.JwtDecoder;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
+import org.mockito.ArgumentMatchers;
 
-import static org.mockito.ArgumentMatchers.any;
+import static io.restassured.RestAssured.given;
+import static io.restassured.http.ContentType.JSON;
+import static org.hamcrest.CoreMatchers.is;
 import static org.mockito.BDDMockito.given;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest(CustomerApiImpl.class)
-@Import(SecurityConfig.class)
+@QuarkusTest
 class CustomerApiImplTest {
 
     private static final String BODY = """
             {"fullName":"Alice Nguyen","email":"alice@example.com","phoneNumber":"+84901234567","countryCode":"VN"}
             """;
 
-    @Autowired
-    private MockMvc mockMvc;
+    @InjectMock
+    CustomerCommandInboundPort customerCommandInboundPort;
 
-    @MockitoBean
-    private CustomerCommandInboundPort customerCommandInboundPort;
-
-    @MockitoBean
-    private CustomerQueryInboundPort customerQueryInboundPort;
-
-    @MockitoBean
-    private JwtDecoder jwtDecoder;
+    @InjectMock
+    CustomerQueryInboundPort customerQueryInboundPort;
 
     @Test
-    void registerReturns201WithCustomer() throws Exception {
-        given(customerCommandInboundPort.registerCustomer(any())).willReturn(CustomerDomainEntity.register(
-                new RegisterCustomerCommand("Alice Nguyen", "alice@example.com", "+84901234567", "VN")));
+    @TestSecurity(user = "alice")
+    void registerReturns201WithCustomer() {
+        given(customerCommandInboundPort.registerCustomer(ArgumentMatchers.any()))
+                .willReturn(CustomerDomainEntity.register(
+                        new RegisterCustomerCommand("Alice Nguyen", "alice@example.com", "+84901234567", "VN")));
 
-        mockMvc.perform(post("/api/v1/customers").with(jwt()).contentType(MediaType.APPLICATION_JSON).content(BODY))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.email").value("alice@example.com"))
-                .andExpect(jsonPath("$.status").value("ACTIVE"));
+        given()
+                .contentType(JSON).body(BODY)
+                .when().post("/api/v1/customers")
+                .then()
+                .statusCode(201)
+                .body("email", is("alice@example.com"))
+                .body("status", is("ACTIVE"));
     }
 
     @Test
-    void duplicateEmailIsMappedTo409() throws Exception {
-        given(customerCommandInboundPort.registerCustomer(any()))
+    @TestSecurity(user = "alice")
+    void duplicateEmailIsMappedTo409() {
+        given(customerCommandInboundPort.registerCustomer(ArgumentMatchers.any()))
                 .willThrow(new DuplicateCustomerEmailException("alice@example.com"));
 
-        mockMvc.perform(post("/api/v1/customers").with(jwt()).contentType(MediaType.APPLICATION_JSON).content(BODY))
-                .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.code").value("CUSTOMER_EMAIL_ALREADY_EXISTS"));
+        given()
+                .contentType(JSON).body(BODY)
+                .when().post("/api/v1/customers")
+                .then()
+                .statusCode(409)
+                .body("code", is("CUSTOMER_EMAIL_ALREADY_EXISTS"));
     }
 
     @Test
-    void requestWithoutTokenIsRejected() throws Exception {
-        mockMvc.perform(post("/api/v1/customers").contentType(MediaType.APPLICATION_JSON).content(BODY))
-                .andExpect(status().isUnauthorized());
+    void requestWithoutTokenIsRejected() {
+        given()
+                .contentType(JSON).body(BODY)
+                .when().post("/api/v1/customers")
+                .then()
+                .statusCode(401);
     }
 }

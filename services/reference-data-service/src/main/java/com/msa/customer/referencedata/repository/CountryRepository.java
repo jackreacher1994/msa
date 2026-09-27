@@ -1,17 +1,25 @@
 package com.msa.customer.referencedata.repository;
 
 import com.msa.customer.referencedata.entity.Country;
-import org.springframework.data.jpa.repository.JpaRepository;
+import io.quarkus.hibernate.orm.panache.PanacheRepositoryBase;
+import jakarta.enterprise.context.ApplicationScoped;
 
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-public interface CountryRepository extends JpaRepository<Country, UUID> {
+@ApplicationScoped
+public class CountryRepository implements PanacheRepositoryBase<Country, UUID> {
 
-    Optional<Country> findByCode(String code);
+    public Optional<Country> findByCode(String code) {
+        return find("code", code).firstResultOptional();
+    }
 
-    boolean existsByCode(String code);
+    public boolean existsByCode(String code) {
+        return count("code", code) > 0;
+    }
 
-    List<Country> findAllByOrderByCodeAsc();
+    public List<Country> findAllByOrderByCodeAsc() {
+        return list("order by code asc");
+    }
 }

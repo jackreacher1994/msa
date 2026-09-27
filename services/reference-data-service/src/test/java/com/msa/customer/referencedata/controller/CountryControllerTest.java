@@ -1,49 +1,52 @@
 package com.msa.customer.referencedata.controller;
 
-import com.msa.customer.referencedata.config.SecurityConfig;
 import com.msa.customer.referencedata.dto.CountryResponse;
 import com.msa.customer.referencedata.exception.CountryNotFoundException;
 import com.msa.customer.referencedata.service.CountryService;
+import io.quarkus.test.InjectMock;
+import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.security.TestSecurity;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.context.annotation.Import;
-import org.springframework.security.oauth2.jwt.JwtDecoder;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
+import org.mockito.Mockito;
 
-import static org.mockito.BDDMockito.given;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static io.restassured.RestAssured.given;
+import static org.hamcrest.CoreMatchers.is;
 
-@WebMvcTest(CountryController.class)
-@Import(SecurityConfig.class)
+@QuarkusTest
 class CountryControllerTest {
 
-    @Autowired
-    private MockMvc mockMvc;
-
-    @MockitoBean
-    private CountryService countryService;
-
-    @MockitoBean
-    private JwtDecoder jwtDecoder;
+    @InjectMock
+    CountryService countryService;
 
     @Test
-    void returnsCountryByCode() throws Exception {
-        given(countryService.findByCode("VN")).willReturn(new CountryResponse("VN", "Viet Nam", "+84", true));
+    @TestSecurity(user = "alice")
+    void returnsCountryByCode() {
+        Mockito.when(countryService.findByCode("VN"))
+                .thenReturn(new CountryResponse("VN", "Viet Nam", "+84", true));
 
-        mockMvc.perform(get("/api/v1/countries/VN").with(jwt()))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.name").value("Viet Nam"));
+        given()
+                .when().get("/api/v1/countries/VN")
+                .then()
+                .statusCode(200)
+                .body("name", is("Viet Nam"));
     }
 
     @Test
-    void unknownCountryReturns404() throws Exception {
-        given(countryService.findByCode("XX")).willThrow(new CountryNotFoundException("XX"));
+    @TestSecurity(user = "alice")
+    void unknownCountryReturns404() {
+        Mockito.when(countryService.findByCode("XX")).thenThrow(new CountryNotFoundException("XX"));
 
-        mockMvc.perform(get("/api/v1/countries/XX").with(jwt())).andExpect(status().isNotFound());
+        given()
+                .when().get("/api/v1/countries/XX")
+                .then()
+                .statusCode(404);
+    }
+
+    @Test
+    void unauthenticatedReturns401() {
+        given()
+                .when().get("/api/v1/countries/VN")
+                .then()
+                .statusCode(401);
     }
 }

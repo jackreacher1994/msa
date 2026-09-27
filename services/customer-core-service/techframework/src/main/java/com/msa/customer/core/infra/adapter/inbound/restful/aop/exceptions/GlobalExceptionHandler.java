@@ -4,45 +4,61 @@ import com.msa.customer.core.domain.exceptions.business.BusinessException;
 import com.msa.customer.core.infra.adapter.inbound.restful.aop.exceptions.business.BusinessExceptionHttpStatusMapper;
 import com.msa.customer.core.infra.adapter.inbound.restful.aop.exceptions.description.ErrorDescription;
 import com.msa.customer.core.infra.adapter.inbound.restful.aop.exceptions.technicality.TechnicalException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.http.converter.HttpMessageNotReadableException;
-import org.springframework.web.bind.MethodArgumentNotValidException;
-import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.RestControllerAdvice;
-import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import jakarta.validation.ConstraintViolationException;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.ext.ExceptionMapper;
+import jakarta.ws.rs.ext.Provider;
+import org.jboss.logging.Logger;
 
-/** Global exception handler: one place that turns exceptions into the uniform {@link ErrorDescription} body. */
-@RestControllerAdvice
+/** Global exception handling: turns exceptions into the uniform {@link ErrorDescription} body. */
 public class GlobalExceptionHandler {
 
-    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+    private static final Logger LOG = Logger.getLogger(GlobalExceptionHandler.class);
 
-    @ExceptionHandler(BusinessException.class)
-    ResponseEntity<ErrorDescription> handleBusiness(BusinessException e) {
-        return ResponseEntity.status(BusinessExceptionHttpStatusMapper.toHttpStatus(e))
-                .body(ErrorDescription.of(e.getErrorCode(), e.getMessage()));
+    @Provider
+    public static class BusinessMapper implements ExceptionMapper<BusinessException> {
+        @Override
+        public Response toResponse(BusinessException e) {
+            return Response.status(BusinessExceptionHttpStatusMapper.toHttpStatus(e))
+                    .type(MediaType.APPLICATION_JSON)
+                    .entity(ErrorDescription.of(e.getErrorCode(), e.getMessage()))
+                    .build();
+        }
     }
 
-    @ExceptionHandler(TechnicalException.class)
-    ResponseEntity<ErrorDescription> handleTechnical(TechnicalException e) {
-        log.error("Technical failure: {}", e.getMessage(), e);
-        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
-                .body(ErrorDescription.of(e.getErrorCode(), e.getMessage()));
+    @Provider
+    public static class TechnicalMapper implements ExceptionMapper<TechnicalException> {
+        @Override
+        public Response toResponse(TechnicalException e) {
+            LOG.errorf(e, "Technical failure: %s", e.getMessage());
+            return Response.status(Response.Status.SERVICE_UNAVAILABLE)
+                    .type(MediaType.APPLICATION_JSON)
+                    .entity(ErrorDescription.of(e.getErrorCode(), e.getMessage()))
+                    .build();
+        }
     }
 
-    @ExceptionHandler({MethodArgumentNotValidException.class, HttpMessageNotReadableException.class,
-            MethodArgumentTypeMismatchException.class})
-    ResponseEntity<ErrorDescription> handleBadRequest(Exception e) {
-        return ResponseEntity.badRequest().body(ErrorDescription.of("REQUEST_INVALID", "Malformed or invalid request"));
+    @Provider
+    public static class ValidationMapper implements ExceptionMapper<ConstraintViolationException> {
+        @Override
+        public Response toResponse(ConstraintViolationException e) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .type(MediaType.APPLICATION_JSON)
+                    .entity(ErrorDescription.of("REQUEST_INVALID", "Malformed or invalid request"))
+                    .build();
+        }
     }
 
-    @ExceptionHandler(Exception.class)
-    ResponseEntity<ErrorDescription> handleUnexpected(Exception e) {
-        log.error("Unexpected error", e);
-        return ResponseEntity.internalServerError()
-                .body(ErrorDescription.of("INTERNAL_ERROR", "An unexpected error occurred"));
+    @Provider
+    public static class UnexpectedMapper implements ExceptionMapper<Exception> {
+        @Override
+        public Response toResponse(Exception e) {
+            LOG.error("Unexpected error", e);
+            return Response.serverError()
+                    .type(MediaType.APPLICATION_JSON)
+                    .entity(ErrorDescription.of("INTERNAL_ERROR", "An unexpected error occurred"))
+                    .build();
+        }
     }
 }

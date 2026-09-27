@@ -6,7 +6,7 @@ import com.msa.customer.core.domain.exceptions.business.CustomerNotFoundExceptio
 import com.msa.customer.core.domain.exceptions.business.DuplicateCustomerEmailException;
 import com.msa.customer.core.domain.exceptions.business.InvalidCustomerDataException;
 import com.msa.customer.core.domain.exceptions.business.UnsupportedCountryException;
-import org.springframework.http.HttpStatus;
+import jakarta.ws.rs.core.Response;
 
 /** Translates framework-agnostic domain exceptions into HTTP semantics (a concern of the REST adapter only). */
 public final class BusinessExceptionHttpStatusMapper {
@@ -14,14 +14,14 @@ public final class BusinessExceptionHttpStatusMapper {
     private BusinessExceptionHttpStatusMapper() {
     }
 
-    public static HttpStatus toHttpStatus(BusinessException exception) {
+    public static Response.Status toHttpStatus(BusinessException exception) {
         return switch (exception) {
-            case CustomerNotFoundException e -> HttpStatus.NOT_FOUND;
-            case DuplicateCustomerEmailException e -> HttpStatus.CONFLICT;
-            case CustomerNotActiveException e -> HttpStatus.CONFLICT;
-            case UnsupportedCountryException e -> HttpStatus.UNPROCESSABLE_ENTITY;
-            case InvalidCustomerDataException e -> HttpStatus.BAD_REQUEST;
-            default -> HttpStatus.BAD_REQUEST;
+            case CustomerNotFoundException e -> Response.Status.NOT_FOUND;
+            case DuplicateCustomerEmailException e -> Response.Status.CONFLICT;
+            case CustomerNotActiveException e -> Response.Status.CONFLICT;
+            case UnsupportedCountryException e -> Response.Status.fromStatusCode(422);
+            case InvalidCustomerDataException e -> Response.Status.BAD_REQUEST;
+            default -> Response.Status.BAD_REQUEST;
         };
     }
 }

@@ -8,32 +8,38 @@ import com.msa.customer.core.application.ports.outbound.repositories.eventpublis
 import com.msa.customer.core.application.ports.outbound.repositories.persistence.CustomerRepositoryOutboundPort;
 import com.msa.customer.core.application.ports.outbound.repositories.referencedata.ReferenceDataOutboundPort;
 import com.msa.customer.core.domain.services.CustomerDomainService;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Produces;
+import jakarta.inject.Singleton;
 
 /**
- * Composition root. The domain and application modules are plain Java (no Spring annotations), so their
- * objects are wired here and the ports are bound to the techframework adapters (dependency inversion).
+ * Composition root. The domain and application modules are plain Java (no CDI annotations),
+ * so their objects are wired here via CDI producers and the ports are bound to adapters.
  */
-@Configuration
+@Singleton
 public class BeanConfig {
 
-    @Bean
+    @Produces
+    @ApplicationScoped
     CustomerDomainService customerDomainService() {
         return new CustomerDomainService();
     }
 
-    @Bean
-    CustomerCommandInboundPort customerCommandInboundPort(CustomerRepositoryOutboundPort customerRepositoryOutboundPort,
-                                                          CustomerEventPublisherOutboundPort customerEventPublisherOutboundPort,
-                                                          ReferenceDataOutboundPort referenceDataOutboundPort,
-                                                          CustomerDomainService customerDomainService) {
-        return new CustomerCommandInboundPortImpl(customerRepositoryOutboundPort, customerEventPublisherOutboundPort,
-                referenceDataOutboundPort, customerDomainService);
+    @Produces
+    @ApplicationScoped
+    CustomerCommandInboundPort customerCommandInboundPort(
+            CustomerRepositoryOutboundPort customerRepositoryOutboundPort,
+            CustomerEventPublisherOutboundPort customerEventPublisherOutboundPort,
+            ReferenceDataOutboundPort referenceDataOutboundPort,
+            CustomerDomainService customerDomainService) {
+        return new CustomerCommandInboundPortImpl(customerRepositoryOutboundPort,
+                customerEventPublisherOutboundPort, referenceDataOutboundPort, customerDomainService);
     }
 
-    @Bean
-    CustomerQueryInboundPort customerQueryInboundPort(CustomerRepositoryOutboundPort customerRepositoryOutboundPort) {
+    @Produces
+    @ApplicationScoped
+    CustomerQueryInboundPort customerQueryInboundPort(
+            CustomerRepositoryOutboundPort customerRepositoryOutboundPort) {
         return new CustomerQueryInboundPortImpl(customerRepositoryOutboundPort);
     }
 }

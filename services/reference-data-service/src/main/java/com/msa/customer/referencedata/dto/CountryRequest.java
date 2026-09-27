@@ -1,9 +1,11 @@
 package com.msa.customer.referencedata.dto;
 
+import io.quarkus.runtime.annotations.RegisterForReflection;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
+@RegisterForReflection
 public record CountryRequest(
         @NotBlank @Pattern(regexp = "^[A-Za-z]{2}$") String code,
         @NotBlank @Size(max = 100) String name,

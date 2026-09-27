@@ -8,22 +8,20 @@ import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.StatusCode;
 import io.opentelemetry.api.trace.Tracer;
 import io.opentelemetry.context.Scope;
-import org.aspectj.lang.ProceedingJoinPoint;
-import org.aspectj.lang.annotation.Around;
-import org.aspectj.lang.annotation.Aspect;
-import org.springframework.core.Ordered;
-import org.springframework.core.annotation.Order;
-import org.springframework.stereotype.Component;
+import jakarta.annotation.Priority;
+import jakarta.interceptor.AroundInvoke;
+import jakarta.interceptor.Interceptor;
+import jakarta.interceptor.InvocationContext;
 
 /**
- * Observability as a cross-cutting concern (AOP): every use case executed through an inbound port gets
- * its own span and increments a business metric. Only the vendor-neutral OpenTelemetry API is used; the
- * OpenTelemetry Java agent provides the SDK and ships the data over OTLP to the Collector.
+ * Observability as a cross-cutting concern (CDI interceptor, replaces Spring AOP):
+ * every observed use case gets its own span and increments a business metric.
+ * Only the vendor-neutral OpenTelemetry API is used; the Quarkus OTel extension supplies the SDK.
  */
-@Aspect
-@Component
-@Order(Ordered.HIGHEST_PRECEDENCE)
-public class UseCaseObservabilityAspect {
+@ObservedUseCase
+@Interceptor
+@Priority(Interceptor.Priority.PLATFORM_BEFORE + 100)
+public class UseCaseObservabilityInterceptor {
 
     private static final String INSTRUMENTATION_SCOPE = "com.msa.customer.core";
     private static final AttributeKey<String> USE_CASE = AttributeKey.stringKey("use_case");
@@ -35,19 +33,19 @@ public class UseCaseObservabilityAspect {
             .setDescription("Number of Customer Core use case invocations by use case and outcome")
             .build();
 
-    @Around("execution(public * com.msa.customer.core.application.ports.inbound..*(..))")
-    public Object observeUseCase(ProceedingJoinPoint joinPoint) throws Throwable {
-        String useCase = joinPoint.getSignature().getName();
+    @AroundInvoke
+    public Object observeUseCase(InvocationContext ctx) throws Exception {
+        String useCase = ctx.getMethod().getName();
         Span span = tracer.spanBuilder("UseCase " + useCase).startSpan();
         try (Scope ignored = span.makeCurrent()) {
-            Object result = joinPoint.proceed();
+            Object result = ctx.proceed();
             useCaseCounter.add(1, Attributes.of(USE_CASE, useCase, OUTCOME, "success"));
             return result;
-        } catch (Throwable t) {
-            useCaseCounter.add(1, Attributes.of(USE_CASE, useCase, OUTCOME, t.getClass().getSimpleName()));
-            span.recordException(t);
-            span.setStatus(StatusCode.ERROR, t.getMessage());
-            throw t;
+        } catch (Exception e) {
+            useCaseCounter.add(1, Attributes.of(USE_CASE, useCase, OUTCOME, e.getClass().getSimpleName()));
+            span.recordException(e);
+            span.setStatus(StatusCode.ERROR, e.getMessage());
+            throw e;
         } finally {
             span.end();
         }

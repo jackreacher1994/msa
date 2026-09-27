@@ -1,27 +1,49 @@
 package com.msa.customer.referencedata.exception;
 
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ProblemDetail;
-import org.springframework.web.bind.MethodArgumentNotValidException;
-import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.RestControllerAdvice;
+import jakarta.validation.ConstraintViolationException;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.ext.ExceptionMapper;
+import jakarta.ws.rs.ext.Provider;
 
-/** Centralized exception handling using RFC 9457 problem details. */
-@RestControllerAdvice
+import java.util.Map;
+
+/**
+ * Centralized exception handling. One mapper per failure type, returning a
+ * uniform JSON body (replaces Spring's ProblemDetail-based advice).
+ */
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(CountryNotFoundException.class)
-    ProblemDetail handleNotFound(CountryNotFoundException e) {
-        return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, e.getMessage());
+    @Provider
+    public static class CountryNotFoundMapper implements ExceptionMapper<CountryNotFoundException> {
+        @Override
+        public Response toResponse(CountryNotFoundException e) {
+            return Response.status(Response.Status.NOT_FOUND)
+                    .type(MediaType.APPLICATION_JSON)
+                    .entity(Map.of("title", e.getMessage(), "status", 404))
+                    .build();
+        }
     }
 
-    @ExceptionHandler(CountryAlreadyExistsException.class)
-    ProblemDetail handleConflict(CountryAlreadyExistsException e) {
-        return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, e.getMessage());
+    @Provider
+    public static class CountryAlreadyExistsMapper implements ExceptionMapper<CountryAlreadyExistsException> {
+        @Override
+        public Response toResponse(CountryAlreadyExistsException e) {
+            return Response.status(Response.Status.CONFLICT)
+                    .type(MediaType.APPLICATION_JSON)
+                    .entity(Map.of("title", e.getMessage(), "status", 409))
+                    .build();
+        }
     }
 
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    ProblemDetail handleValidation(MethodArgumentNotValidException e) {
-        return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, "Invalid request");
+    @Provider
+    public static class ValidationMapper implements ExceptionMapper<ConstraintViolationException> {
+        @Override
+        public Response toResponse(ConstraintViolationException e) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .type(MediaType.APPLICATION_JSON)
+                    .entity(Map.of("title", "Invalid request", "status", 400))
+                    .build();
+        }
     }
 }

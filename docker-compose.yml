@@ -42,6 +42,7 @@ services:
   customer-core-service:
     build:
       context: ./services/customer-core-service
+      target: ${BUILD_TARGET:-final}
       args:
         MAVEN_MIRROR_URL: ${MAVEN_MIRROR_URL:-}
     image: customer-msa/customer-core-service:local
@@ -58,13 +59,14 @@ services:
       reference-data-service: {condition: service_started}
       otel-collector: {condition: service_started}
     healthcheck:
-      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/localhost/8081 && printf \"GET /actuator/health/readiness HTTP/1.0\\r\\n\\r\\n\" >&3 && grep -q UP <&3'"]
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/localhost/8081 && printf \"GET /q/health/ready HTTP/1.0\\r\\n\\r\\n\" >&3 && grep -q UP <&3'"]
       interval: 10s
       retries: 30
 
   reference-data-service:
     build:
       context: ./services/reference-data-service
+      target: ${BUILD_TARGET:-final}
       args:
         MAVEN_MIRROR_URL: ${MAVEN_MIRROR_URL:-}
     image: customer-msa/reference-data-service:local
@@ -79,7 +81,7 @@ services:
       reference-data-db: {condition: service_healthy}
       otel-collector: {condition: service_started}
     healthcheck:
-      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/localhost/8082 && printf \"GET /actuator/health/readiness HTTP/1.0\\r\\n\\r\\n\" >&3 && grep -q UP <&3'"]
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/localhost/8082 && printf \"GET /q/health/ready HTTP/1.0\\r\\n\\r\\n\" >&3 && grep -q UP <&3'"]
       interval: 10s
       retries: 30
 

@@ -1,5 +1,6 @@
 package com.msa.customer.referencedata.entity;
 
+import io.quarkus.runtime.annotations.RegisterForReflection;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
@@ -10,6 +11,7 @@ import java.util.UUID;
 /** CRUD variant: the JPA entity is the model; there is no separate domain layer. */
 @Entity
 @Table(name = "countries")
+@RegisterForReflection
 public class Country {
 
     @Id

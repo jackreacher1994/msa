@@ -1,14 +1,12 @@
 package com.msa.customer.core;
 
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
+import io.quarkus.runtime.Quarkus;
+import io.quarkus.runtime.annotations.QuarkusMain;
 
-@SpringBootApplication
-@ConfigurationPropertiesScan
+@QuarkusMain
 public class CustomerCoreApplication {
 
     public static void main(String[] args) {
-        SpringApplication.run(CustomerCoreApplication.class, args);
+        Quarkus.run(args);
     }
 }
